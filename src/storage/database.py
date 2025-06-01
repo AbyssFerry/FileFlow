@@ -1,7 +1,7 @@
 
 import sqlite3
 
-DB_NAME = 'example.db'
+DB_NAME = 'fileflow_database.db'
 
 def get_connection():
     return sqlite3.connect(DB_NAME)
