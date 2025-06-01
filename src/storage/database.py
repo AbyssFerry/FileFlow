@@ -73,6 +73,8 @@ def update_file_content_by_path(path, content):
 def update_file_short_content_by_path(path, short):
     return update_file_fields_by_path(path, {"short_content": short})
 
+def update_file_size_by_path(path, size):
+    return update_file_fields_by_path(path, {"size": size})
 
 
 # ===============================
