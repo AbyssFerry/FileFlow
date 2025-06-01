@@ -1,3 +1,6 @@
+# ===============================
+#          文件表操作函数
+# ===============================
 
 import sqlite3
 
@@ -30,32 +33,6 @@ def query_files():
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM file')
         return cursor.fetchall()
-
-def update_file_size(name, new_size):
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE file
-            SET size = ?, modified_time = datetime('now', 'localtime')
-            WHERE name = ?
-        ''', (new_size, name))
-        conn.commit()
-
-def update_file_short_content(name, new_short_content):
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE file
-                SET short_content = ?, modified_time = datetime('now', 'localtime')
-                WHERE name = ?
-            ''', (new_short_content, name))
-            if cursor.rowcount == 0:
-                return False, f"文件名 '{name}' 未找到，更新失败"
-            conn.commit()
-            return True, "文件分析内容更新成功"
-    except Exception as e:
-        return False, f"更新失败：{e}"
     
 def delete_file(name):
     with get_connection() as conn:
@@ -63,43 +40,40 @@ def delete_file(name):
         cursor.execute('DELETE FROM file WHERE name = ?', (name,))
         conn.commit()
 
-def update_file_content(name, new_content):
+def update_file_fields_by_path(path, fields):
     try:
+        if not fields:
+            return False, "没有需要更新的字段"
+        assignments = ", ".join([f"{k} = ?" for k in fields])
+        sql = f'''
+            UPDATE file
+            SET {assignments}, modified_time = datetime('now', 'localtime')
+            WHERE absolute_path = ?
+        '''
+        values = list(fields.values())
+        values.append(path)
+
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE file
-                SET content = ?, modified_time = datetime('now', 'localtime')
-                WHERE name = ?
-            ''', (new_content, name))
-
+            cursor.execute(sql, values)
             if cursor.rowcount == 0:
-                return False, f"文件名 '{name}' 未找到，更新失败"
-
+                return False, f"文件路径 '{path}' 未找到，更新失败"
             conn.commit()
-            return True, "文件内容更新成功"
+            return True, "文件信息更新成功"
     except Exception as e:
         return False, f"更新失败：{e}"
     
+# ===== 单字段更新封装（文件） =====
+def update_file_ai_description_by_path(path, description):
+    return update_file_fields_by_path(path, {"ai_description": description})
 
-def update_file_ai_description(name, new_description):
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE file
-                SET ai_description = ?, modified_time = datetime('now', 'localtime')
-                WHERE name = ?
-            ''', (new_description, name))
+def update_file_content_by_path(path, content):
+    return update_file_fields_by_path(path, {"content": content})
 
-            if cursor.rowcount == 0:
-                return False, f"文件名 '{name}' 未找到，更新失败"
+def update_file_short_content_by_path(path, short):
+    return update_file_fields_by_path(path, {"short_content": short})
 
-            conn.commit()
-            return True, "AI 描述更新成功"
-    except Exception as e:
-        return False, f"更新失败：{e}"
-    
+
 
 # ===============================
 #          目录表操作函数
@@ -130,15 +104,6 @@ def query_directories():
         cursor.execute('SELECT * FROM directory')
         return cursor.fetchall()
 
-def update_directory_description(path, new_description):
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE directory
-            SET ai_description = ?
-            WHERE absolute_path = ?
-        ''', (new_description, path))
-        conn.commit()
 
 def delete_directory_by_path(path):
     with get_connection() as conn:
@@ -146,40 +111,32 @@ def delete_directory_by_path(path):
         cursor.execute('DELETE FROM directory WHERE absolute_path = ?', (path,))
         conn.commit()
 
-def update_directory_description(name, new_description):
+def update_directory_fields_by_path(path, fields):
     try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE directory
-                SET ai_description = ?, register_time = datetime('now', 'localtime')
-                WHERE name = ?
-            ''', (new_description, name))
-            if cursor.rowcount == 0:
-                return False, f"目录名 '{name}' 未找到，更新失败"
-            conn.commit()
-            return True, "目录分析描述更新成功"
-    except Exception as e:
-        return False, f"更新失败：{e}"
-
-def update_directory_size(name, new_size):
-    try:
-        if new_size < 0:
-            return False, "大小不能为负数"
+        if not fields:
+            return False, "没有需要更新的字段"
+        assignments = ", ".join([f"{k} = ?" for k in fields])
+        sql = f'''
+            UPDATE directory
+            SET {assignments}, register_time = datetime('now', 'localtime')
+            WHERE absolute_path = ?
+        '''
+        values = list(fields.values())
+        values.append(path)
 
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE directory
-                SET size = ?, register_time = datetime('now', 'localtime')
-                WHERE name = ?
-            ''', (new_size, name))
-
+            cursor.execute(sql, values)
             if cursor.rowcount == 0:
-                return False, f"目录名 '{name}' 未找到，更新失败"
-
+                return False, f"目录路径 '{path}' 未找到，更新失败"
             conn.commit()
-            return True, "目录大小更新成功"
+            return True, "目录信息更新成功"
     except Exception as e:
         return False, f"更新失败：{e}"
 
+# ===== 单字段更新封装（目录） =====
+def update_directory_ai_description_by_path(path, description):
+    return update_directory_fields_by_path(path, {"ai_description": description})
+
+def update_directory_size_by_path(path, size):
+    return update_directory_fields_by_path(path, {"size": size})
