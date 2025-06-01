@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 def parse_folder_path(directory):
     file_info_list = []
-
     #遍历目录中的所有文件
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
