@@ -1,4 +1,4 @@
-#仅供测试用！！！！！！！！！！
+#仅供测试用！！！！！！！！！！！
 
 import sys
 from PyQt5.QtWidgets import QApplication
