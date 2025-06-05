@@ -45,24 +45,36 @@ test_files = [
 ]
 
 # 测试文件操作
-""" ****************************fileAdd模块************************ """
-a=database.fileAdd(test_files)
-print(a)
-""" ****************************fileShow模块************************ """
-database.fileShow()
-""" ****************************fileSearch模块************************ """
-database.fileSearch("/project/images/logo.png")
-""" ****************************fileDelete模块************************ """
-database.fileDelete()
-# 测试目录操作
-""" ****************************folderAdd模块************************ """
-b=database.folderAdd(test_folders)
-print(b)
-""" ****************************folderShow模块************************ """
-database.folderShow()
-""" ****************************folderDelete模块************************ """
-database.folderDelete()
+print(""" \n****************************fileAdd模块************************ \n""")
+for f in test_files:
+    database.fileAdd(f)
+print(""" \n****************************fileshow模块************************ \n""")
+files=database.fileShow()
+for f in files:
+    print(f)
+print(""" \n****************************filesearch模块************************ \n""")
+file=database.fileSearchByName("logo.png") 
+print(file)
+file=database.fileSearchByPath("/project/docs/readme.txt") 
+print(file)
+print(""" \n****************************filedelete模块************************ \n""")
+file="logo.png"
+database.fileDeleteByName(file)
+file="/project/docs/readme.txt"
+database.fileDeleteByPath(file)
 
-""" ****************************初始化************************ """
+
+
+# 测试目录操作
+print(""" \n****************************foldadd模块************************ \n""")
+for f in test_folders:
+    database.folderAdd(f)
+print(""" \n****************************foldshow模块************************ \n""")
+folders=database.folderShow()
+for f in folders:
+    print(f)
+print(""" \n****************************folddelete模块************************ \n""")
+database.folderDeleteByName("docs")
+database.folderDeleteByPath("/project/images")
 
 database.reset_database()
