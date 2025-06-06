@@ -1,15 +1,12 @@
 import os
+from dotenv import load_dotenv
 from typing import List, Dict, Any, Tuple
-from api_keys import DEEPSEEK_API_KEY as deepseek_api_key
-
-# 环境变量配置
-os.environ["DEEPSEEK_API_KEY"] = deepseek_api_key
-
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.output_parsers import StrOutputParser
 
+load_dotenv()
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 parser = StrOutputParser()
-
 
 class FileClassifier:
     """智能文件归类与检索助手"""
