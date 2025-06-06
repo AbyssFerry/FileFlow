@@ -1,6 +1,8 @@
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from api_keys import DEEPSEEK_API_KEY as deepseek_api_key
+
+# 环境变量配置
 os.environ["DEEPSEEK_API_KEY"] = deepseek_api_key
 
 from langchain_deepseek import ChatDeepSeek
@@ -8,238 +10,262 @@ from langchain_core.output_parsers import StrOutputParser
 
 parser = StrOutputParser()
 
+
 class FileClassifier:
+    """智能文件归类与检索助手"""
+
     def __init__(self):
         self.llm = ChatDeepSeek(model="deepseek-chat")
 
     def _invoke_chain(self, prompt: str) -> str:
-        """统一的链式调用，便于异常处理和后续扩展"""
+        """调用大模型链，返回字符串结果"""
         chain = self.llm | parser
         try:
             return chain.invoke(prompt)
         except Exception as e:
             return f"LLM调用异常: {e}"
 
-    def summary_file(self, name: str, path: str, content: str) -> Dict[str, str]:
+    def summary_file(self, file: Dict[str, Any]) -> Dict[str, Any]:
+        """对单个文件生成详细总结和一句话描述"""
         prompt = (
             f"请阅读以下文件内容：\n"
-            f"文件名: {name}\n"
-            f"文件路径: {path}\n"
-            f"文件内容:\n{content}\n\n"
+            f"文件名: {file['name']}\n"
+            f"文件内容:\n{file['content']}\n\n"
             f"请只输出详细总结和一句话描述，中间用换行分隔，不要输出其他内容（包括“详细总结”和“一句话描述”）。"
         )
         response = self._invoke_chain(prompt)
         try:
-            summary, description = response.split('\n', 1)
+            ai_description, short_content = response.split('\n', 1)
         except Exception:
-            summary, description = response, ""
+            ai_description, short_content = "", ""
         return {
-            "summary": summary.strip(),
-            "description": description.strip()
+            "name": file.get("name", ""),
+            "absolute_path": file.get("absolute_path", ""),
+            "new_absolute_path": file.get("new_absolute_path", ""),
+            "extension": file.get("extension", ""),
+            "created_time": file.get("created_time", ""),
+            "size": file.get("size", 0),
+            "content": file.get("content", ""),
+            "ai_description": ai_description.strip(),
+            "short_content": short_content.strip(),
+            "reason_for_move": file.get("reason_for_move", "")
         }
 
-    def classify_files(self, files: List[Dict[str, Any]]) -> str:
+    def classify_files(self, files: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """批量归类文件，返回归类后的文件和目录列表"""
         prompt = (
-            "你是一个文件分类助手。请根据每个文件的总结内容，将它们分为合适的类别（按照中图法）。"
-            "对于每个类别，请给出：\n"
-            "1. 类别名\n"
-            "2. 该类别的简要描述\n"
-            "3. 属于该类别的文件的绝对路径列表\n\n"
-            "输出格式为JSON对象，每个键为类别名，值为包含'description'和'files'两个字段的对象，"
-            "'description'为类别描述，'files'为该类别下所有文件的绝对路径列表。\n\n"
-            "文件列表：\n"
+            "你是一个智能文件归类助手。请根据每个文件的内容和AI描述，将它们合理归入二到三级目录，并输出文件列表和目录列表：\n"
+            "1. 文件列表，每个文件包含：name|||absolute_path|||new_absolute_path。\n"
+            "2. 目录列表，每个目录包含：name|||absolute_path|||ai_description。\n"
+            "注意：new_absolute_path为文件归类后的新路径，目录需体现二到三级结构。\n"
+            "目录名只取最后一级目录名。\n"
+            "文件数据如下：\n"
         )
-        prompt += "".join(
-            f"{idx}. 文件名: {file['name']}\n路径: {file['path']}\n总结: {file['summary']}\n\n"
-            for idx, file in enumerate(files, 1)
+        for idx, file in enumerate(files, 1):
+            prompt += (
+                f"{idx}. 文件名: {file['name']}\n"
+                f"原路径: {file['absolute_path']}\n"
+                f"AI描述: {file.get('ai_description', '')}\n\n"
+            )
+        prompt += (
+            "请严格按照如下格式输出：\n"
+            "不要输出“文件列表”和“目录列表”这八个字符\n"
+            "文件列表的每个文件都用换行符分隔\n"
+            "每个文件的每个属性都用|||分隔\n"
+            "文件列表和目录列表之间用---分隔。\n"
+            "目录列表的每个目录都用换行符分隔\n"
+            "每个目录的每个属性都用|||分隔\n"
         )
-        prompt += "请只输出JSON对象，不要输出其他内容。"
-        return self._invoke_chain(prompt)
+        response = self._invoke_chain(prompt)
+        try:
+            files_str, categories_str = response.strip().split('---', 1)
+            files_list_raw = [file.split('|||') for file in files_str.strip().split('\n') if file.strip()]
+            categories_list_raw = [cat.split('|||') for cat in categories_str.strip().split('\n') if cat.strip()]
+            files_list = []
+            for file_item in files_list_raw:
+                name, absolute_path, new_absolute_path = file_item
+                origin = next((f for f in files if f['name'] == name and f['absolute_path'] == absolute_path), {})
+                files_list.append({
+                    "name": name,
+                    "absolute_path": absolute_path,
+                    "new_absolute_path": new_absolute_path,
+                    "extension": origin.get("extension", ""),
+                    "created_time": origin.get("created_time", ""),
+                    "size": origin.get("size", 0),
+                    "content": origin.get("content", ""),
+                    "ai_description": origin.get("ai_description", ""),
+                    "short_content": origin.get("short_content", ""),
+                    "reason_for_move": origin.get("reason_for_move", "")
+                })
+            categories_list = []
+            for cat_item in categories_list_raw:
+                name, absolute_path, ai_description = cat_item
+                categories_list.append({
+                    "name": name,
+                    "absolute_path": absolute_path,
+                    "created_time": "",
+                    "register_time": "",
+                    "size": 0,
+                    "ai_description": ai_description,
+                })
+            return {"files": files_list, "categories": categories_list}
+        except Exception as e:
+            print(f"分类文件时发生异常: {e}")
+            return {"files": [], "categories": []}
 
     def classify_file(
-        self, name: str, path: str, summary: str, categories: List[Dict[str, Any]]
-    ) -> str:
+        self, file: Dict[str, Any], categories: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """将单个文件归入最合适的目录"""
         prompt = (
-            "你是一个文件归类助手。请根据文件的总结内容和已有目录的信息，判断该文件最适合归属哪个目录。\n"
-            "如果没有合适的目录，请为该文件新建一个目录，并给出新目录的名称、描述和建议路径。\n"
-            "请详细说明你的归类理由。\n"
-            "输出格式为JSON对象，包含以下字段：\n"
-            "category_name, category_description, category_path, reason, is_new。\n\n"
-            "文件信息：\n"
-            f"文件名: {name}\n"
-            f"文件路径: {path}\n"
-            f"文件总结: {summary}\n\n"
-            "已有目录列表：\n"
+            "你是一个文件归类助手。请根据文件的内容、AI描述和所有目录的信息，判断该文件最适合归属哪个目录\n"
+            "请输出文件的新绝对路径和归类原因。\n"
+            "请严格按照如下格式输出：name|||new_absolute_path|||reason_for_move\n"
+            "文件信息如下：\n"
+            f"文件名: {file['name']}\n"
+            f"AI描述: {file['ai_description']}\n"
+            "所有目录信息如下：\n"
         )
-        prompt += "".join(
-            f"{idx}. 目录名: {cat['name']}\n目录描述: {cat['description']}\n目录路径: {cat['path']}\n\n"
-            for idx, cat in enumerate(categories, 1)
-        )
-        prompt += "请只输出JSON对象，不要输出其他内容。"
-        return self._invoke_chain(prompt)
+        for cat in categories:
+            prompt += (
+                f"目录名: {cat['name']}\n"
+                f"绝对路径: {cat['absolute_path']}\n"
+                f"AI描述: {cat['ai_description']}\n\n"
+            )
+        response = self._invoke_chain(prompt)
+        try:
+            name, new_absolute_path, reason_for_move = [x.strip() for x in response.strip().split('|||')]
+            return {
+                "name": name,
+                "absolute_path": file.get("absolute_path", ""),
+                "new_absolute_path": new_absolute_path,
+                "extension": file.get("extension", ""),
+                "created_time": file.get("created_time", ""),
+                "size": file.get("size", 0),
+                "content": file.get("content", ""),
+                "ai_description": file.get("ai_description", ""),
+                "short_content": file.get("short_content", ""),
+                "reason_for_move": reason_for_move
+            }
+        except Exception as e:
+            print(f"分类文件时发生异常: {e}")
+            return file
 
-    def get_match_files(self, query: str, categories: List[Dict[str, Any]]) -> str:
+    def get_match_files(self, query: str, files: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """根据查询检索最匹配的文件"""
         prompt = (
-            "你是一个文件检索助手。请根据用户的查询，从所有目录及其文件中找出最符合查询的文件。\n"
-            "每个目录包含目录名、描述、路径和文件列表。\n"
-            "请返回所有匹配的文件的绝对路径列表，输出格式为JSON数组，只包含文件路径，不要输出其他内容。\n\n"
+            "你是一个文件检索助手。请根据用户的查询，从所有文件中找出最符合查询的文件。\n"
+            "请严格按照如下格式输出所有匹配的文件，每个文件一行：name|||absolute_path\n"
+            "不要输出其他内容。\n\n"
             f"用户查询: {query}\n\n"
-            "目录及文件信息：\n"
+            "文件信息如下：\n"
         )
-        prompt += "".join(
-            f"{idx}. 目录名: {cat['name']}\n目录描述: {cat['description']}\n目录路径: {cat['path']}\n文件列表: {cat.get('files', [])}\n\n"
-            for idx, cat in enumerate(categories, 1)
-        )
-        prompt += "请只输出JSON数组，不要输出其他内容。"
-        return self._invoke_chain(prompt)
+        for file in files:
+            prompt += (
+                f"文件名: {file['name']}\n"
+                f"绝对路径: {file['absolute_path']}\n"
+                f"AI描述: {file.get('ai_description', '')}\n"
+            )
+        response = self._invoke_chain(prompt)
+        result = []
+        try:
+            for line in response.strip().split('\n'):
+                if not line.strip():
+                    continue
+                parts = line.strip().split('|||')
+                if len(parts) == 2:
+                    name, absolute_path = parts
+                    result.append({
+                        "name": name.strip(),
+                        "absolute_path": absolute_path.strip()
+                    })
+        except Exception as e:
+            print(f"检索文件时发生异常: {e}")
+        return result
 
-# ...existing code...
-
-if __name__ == "__main__":
-    # 示例文件
+def main():
+    """主流程测试函数"""
     files = [
         {
-            "name": "GPA_Calculation.xlsx",
-            "path": "d:/DataBaseWork/file-flow/GPA_Calculation.xlsx",
-            "content": "",
-            "summary": "这是一个用于计算大学生绩点的Excel表格。"
+            "name": "计算机与网络空间安全学院2023-2024学年德盛慈善教育基金拟推荐名单公示",
+            "absolute_path": "/documents/计算机与网络空间安全学院2023-2024学年德盛慈善教育基金拟推荐名单公示.txt",
+            "content": "计算机与网络空间安全学院\n2023-2024学年德盛慈善教育基金拟推荐名单公示\n\n根据《德盛慈善教育基金评选办法》，经学生申请、学院评审，拟推荐以下2名学生：\n\n1. 张三（学号：20231001），专业：网络空间安全，成绩优异，积极参与社会实践与志愿服务。\n2. 李四（学号：20231002），专业：计算机科学与技术，学习刻苦，担任班级学习委员。\n\n公示时间：2024年3月15日-3月17日\n如有异议，请联系学院办公室王老师，电话：12345678\n\n计算机与网络空间安全学院\n2024年3月15日"
         },
         {
-            "name": "Comprehensive_Quality_Report.docx",
-            "path": "d:/DataBaseWork/file-flow/Comprehensive_Quality_Report.docx",
-            "content": "",
-            "summary": "这是一个大学生综合素质测评报告Word文档。"
+            "name": "2024年上半年学术论文发表统计表",
+            "absolute_path": "/documents/2024年上半年学术论文发表统计表.xlsx",
+            "content": "论文题目,作者,期刊,发表时间,摘要\n深度学习在图像识别中的应用,王五,计算机学报,2024-03-10,本文探讨了深度学习在图像识别领域的最新进展与应用。\n区块链技术在金融安全中的应用,赵六,网络安全,2024-04-15,分析区块链技术在金融行业中的安全优势与挑战。\n人工智能驱动的智能医疗系统,孙七,人工智能,2024-05-20,介绍AI在医疗诊断和健康管理中的创新应用。"
         },
         {
-            "name": "Physical_Test_Scores.xlsx",
-            "path": "d:/DataBaseWork/file-flow/Physical_Test_Scores.xlsx",
-            "content": "",
-            "summary": "这是一个大学生体测成绩Excel表格。"
+            "name": "2023年度财务决算报告",
+            "absolute_path": "/documents/2023年度财务决算报告.pdf",
+            "content": "2023年度财务决算报告\n本年度收入总计1000万元，支出950万元，结余50万元。\n主要收入来源包括学费、科研经费及社会捐赠。支出主要用于教学、科研、基础设施建设及奖助学金发放。报告详细列举了各项收支明细，并对未来财务规划提出建议。"
         },
         {
-            "name": "Computer_Network_Exam_Results.xlsx",
-            "path": "d:/DataBaseWork/file-flow/Computer_Network_Exam_Results.xlsx",
-            "content": "",
-            "summary": "这是一个计算机网络课程考试成绩Excel表格。"
+            "name": "Python编程基础课程大纲",
+            "absolute_path": "/documents/计算机学院/Python编程基础课程大纲.docx",
+            "content": "课程目标：掌握Python基础语法、数据结构、文件操作与常用库。\n课程内容包括：变量与数据类型、流程控制、函数与模块、文件读写、异常处理、常用标准库（如os、sys、re）、简单项目实践。课程安排共16周，每周2学时，含实验与作业。"
         },
         {
-            "name": "Internship_Report.docx",
-            "path": "d:/DataBaseWork/file-flow/Internship_Report.docx",
-            "content": "",
-            "summary": "这是一个大学生实习报告Word文档。"
+            "name": "2024年春季学期课程表",
+            "absolute_path": "/documents/2024年春季学期课程表.xlsx",
+            "content": "周一：高等数学（8:00-9:40），教室A101；大学物理（10:00-11:40），教室A102。\n周二：大学英语（8:00-9:40），教室B201；Python编程基础（10:00-11:40），机房C301。\n周三：数据结构（8:00-9:40），教室A103；体育（14:00-15:40），操场。\n周四：离散数学（8:00-9:40），教室A104。\n周五：创新创业（10:00-11:40），教室B202。"
         },
         {
-            "name": "Graduation_Thesis.docx",
-            "path": "d:/DataBaseWork/file-flow/Graduation_Thesis.docx",
-            "content": "",
-            "summary": "这是一个大学生毕业论文Word文档。"
+            "name": "学生会2024年工作计划",
+            "absolute_path": "/documents/学生会2024年工作计划.docx",
+            "content": "2024年学生会将重点开展学术交流、文体活动和志愿服务等工作。\n具体计划包括：举办学术讲座与竞赛、组织篮球赛和歌唱比赛、开展社区志愿服务、加强与兄弟院校学生会的交流合作、完善学生权益维护机制。"
         },
         {
-            "name": "English_Level_Test_Scores.xlsx",
-            "path": "d:/DataBaseWork/file-flow/English_Level_Test_Scores.xlsx",
-            "content": "",
-            "summary": "这是一个大学英语等级考试成绩Excel表格。"
+            "name": "2024年校园招聘企业名单",
+            "absolute_path": "/documents/2024年校园招聘企业名单.xlsx",
+            "content": "企业名称,招聘岗位,联系方式,宣讲时间,备注\n华为,软件开发,123456789,2024-04-10 14:00,需本科及以上学历\n阿里巴巴,数据分析,987654321,2024-04-12 10:00,欢迎应届毕业生\n腾讯,产品经理,135792468,2024-04-15 09:00,有实习经验优先"
         },
         {
-            "name": "Scholarship_Application_Form.docx",
-            "path": "d:/DataBaseWork/file-flow/Scholarship_Application_Form.docx",
-            "content": "",
-            "summary": "这是一个奖学金申请表Word文档。"
+            "name": "2024年毕业生就业质量报告",
+            "absolute_path": "/documents/2024年毕业生就业质量报告.pdf",
+            "content": "2024年毕业生就业率达95%，主要就业方向为IT、金融、教育等行业。\n报告详细分析了毕业生就业单位类型、薪资水平、就业地区分布，并对未就业学生的原因进行了调研。"
         },
         {
-            "name": "Class_Presentation.pptx",
-            "path": "d:/DataBaseWork/file-flow/Class_Presentation.pptx",
-            "content": "",
-            "summary": "这是一个大学课堂演示PPT文件。"
+            "name": "2024年实验室安全检查记录",
+            "absolute_path": "/documents/2024年实验室安全检查记录.docx",
+            "content": "2024年3月实验室安全检查，未发现重大安全隐患。\n检查内容包括：消防设施、用电安全、化学品存储、实验室卫生等。对存在的小问题已现场整改，并对相关责任人进行了安全培训。"
         },
         {
-            "name": "Lab_Report_Template.docx",
-            "path": "d:/DataBaseWork/file-flow/Lab_Report_Template.docx",
-            "content": "",
-            "summary": "这是一个实验报告模板Word文档。"
-        },
-        {
-            "name": "Student_Resume.docx",
-            "path": "d:/DataBaseWork/file-flow/Student_Resume.docx",
-            "content": "",
-            "summary": "这是一个大学生简历Word文档。"
-        },
-        {
-            "name": "Course_Schedule.xlsx",
-            "path": "d:/DataBaseWork/file-flow/Course_Schedule.xlsx",
-            "content": "",
-            "summary": "这是一个大学生课程表Excel文件。"
-        },
-        {
-            "name": "Academic_Transcript.pdf",
-            "path": "d:/DataBaseWork/file-flow/Academic_Transcript.pdf",
-            "content": "",
-            "summary": "这是一个大学生成绩单PDF文件。"
-        },
-        {
-            "name": "Project_Proposal.docx",
-            "path": "d:/DataBaseWork/file-flow/Project_Proposal.docx",
-            "content": "",
-            "summary": "这是一个大学生项目立项书Word文档。"
-        },
-        {
-            "name": "Volunteer_Hours_Record.xlsx",
-            "path": "d:/DataBaseWork/file-flow/Volunteer_Hours_Record.xlsx",
-            "content": "",
-            "summary": "这是一个大学生志愿服务时长记录Excel表格。"
-        },
-        {
-            "name": "Research_Paper.pdf",
-            "path": "d:/DataBaseWork/file-flow/Research_Paper.pdf",
-            "content": "",
-            "summary": "这是一个大学生科研论文PDF文件。"
-        },
-        {
-            "name": "Club_Activity_Summary.docx",
-            "path": "d:/DataBaseWork/file-flow/Club_Activity_Summary.docx",
-            "content": "",
-            "summary": "这是一个大学生社团活动总结Word文档。"
-        },
-        {
-            "name": "Competition_Award_Certificate.pdf",
-            "path": "d:/DataBaseWork/file-flow/Competition_Award_Certificate.pdf",
-            "content": "",
-            "summary": "这是一个大学生竞赛获奖证书PDF文件。"
-        },
-        {
-            "name": "Semester_Plan.docx",
-            "path": "d:/DataBaseWork/file-flow/Semester_Plan.docx",
-            "content": "",
-            "summary": "这是一个大学生学期计划Word文档。"
-        },
-        {
-            "name": "Graduation_Defense_Presentation.pptx",
-            "path": "d:/DataBaseWork/file-flow/Graduation_Defense_Presentation.pptx",
-            "content": "",
-            "summary": "这是一个大学生毕业答辩PPT文件。"
+            "name": "2024年研究生招生简章",
+            "absolute_path": "/documents/2024年研究生招生简章.pdf",
+            "content": "2024年研究生招生简章\n招生专业：计算机科学与技术、网络空间安全、人工智能等。\n招生计划：全日制硕士100人，非全日制硕士30人。\n报考条件：本科及以上学历，具备相关专业背景。\n报名时间、考试安排及奖学金政策详见学院官网。"
         }
     ]
 
-    categories = []
-
     classifier = FileClassifier()
 
-    # 测试 summary_file
     print("测试 summary_file:")
-    result = classifier.summary_file(files[0]["name"], files[0]["path"], files[0]["content"])
-    print(result)
+    files[0] = classifier.summary_file(files[0])
+    print(files[0])
 
-    # 测试 classify_files
+    print("测试 summary_file 对多个文件:")
+    for idx, file in enumerate(files):
+        files[idx] = classifier.summary_file(file)
+        print(f"文件 {idx + 1} 总结完毕")
+
     print("\n测试 classify_files:")
     result = classifier.classify_files(files)
-    print(result)
+    files = result["files"]
+    categories = result["categories"]
+    print("分类后的文件列表:")
+    print(files)
+    print("分类后的目录列表:")
+    print(categories)
 
-    # 测试 classify_file
     print("\n测试 classify_file:")
-    result = classifier.classify_file(files[0]["name"], files[0]["path"], files[0]["summary"], categories)
-    print(result)
+    files[0] = classifier.classify_file(files[0], categories)
+    print("分类后的文件:")
+    print(files[0])
 
-    # 测试 get_match_files
     print("\n测试 get_match_files:")
-    result = classifier.get_match_files("Python", categories)
-    print(result)
+    print(classifier.get_match_files("研究生", files))
+
+
+if __name__ == "__main__":
+    main()
