@@ -1,8 +1,6 @@
 import os
 from database_build import * 
 import database
-def get_connection():
-    return sqlite3.connect("fileflow_database.db")  # 这里就是连接的数据库文件
 # 测试数据
 test_folders = [
     {
@@ -43,6 +41,9 @@ test_files = [
         "short_content":"这是总结"
     }
 ]
+
+# 创建数据库
+create_database()
 
 # 测试文件操作
 print(""" \n****************************fileAdd模块************************ \n""")
