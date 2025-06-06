@@ -81,3 +81,4 @@ def get_directories(db_path='file_database.db'):
                  substr(path, 1, length(path)-length(name)) as directory_description
                  FROM files''')
     return [{"path": row[0], "description": row[1]} for row in c.fetchall()]
+
