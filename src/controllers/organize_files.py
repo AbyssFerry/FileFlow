@@ -1,41 +1,45 @@
-import os
-import shutil
-from typing import Dict, Optional
+from typing import Dict, Any
+import sqlite3
 
-class FileOrganizer:
-    """专门处理文件移动和目录创建"""
-    @staticmethod
-    def organize_files(file_info: Dict[str, str]) -> bool:
-        """
-        核心文件整理功能
-        参数:
-            file_info: 包含以下键的字典:
-                - 'old_path': 文件原始绝对路径
-                - 'new_path': 文件目标绝对路径
+def merge_file_info(info1: Dict[str, Any], info2: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    合并两个文件信息字典并去除重复字段，特别处理文件内容(content)和创建时间(created_time)
+    
+    参数:
+        info1: 第一个文件信息字典，包含文件名、路径、扩展名、创建时间、大小等内容
+        info2: 第二个文件信息字典，包含类似结构的信息
         
-        返回:
-            bool: 操作是否成功
-        """
-        try:
-            # 验证必要参数存在
-            if not all(key in file_info for key in ['old_path', 'new_path']):
-                raise ValueError("缺少必要路径参数")
+    返回:
+        合并并去重后的新字典，优先保留更完整的信息
+        
+    示例:
+        >>> file1 = {"name": "公示1", "content": "内容1", "created_time": "2023-11-20"}
+        >>> file2 = {"name": "公示1", "content": "内容2", "size": "2048"}
+        >>> merge_file_info(file1, file2)
+        {"name": "公示1", "content": "内容1", "created_time": "2023-11-20", "size": "2048"}
+    """
+    merged_info = {}
+    
+    # 优先处理内容字段，保留更长的内容
+    if "content" in info1 or "content" in info2:
+        content1 = info1.get("content", "")
+        content2 = info2.get("content", "")
+        merged_info["content"] = content1 if len(content1) > len(content2) else content2
+    
+    # 合并其他字段，优先保留info1的值
+    for key in set(info1.keys()).union(info2.keys()):
+        if key == "content":
+            continue  # 已经处理过
             
-            old_path = file_info['old_path']
-            new_path = file_info['new_path']
-            
-            # 检查源文件是否存在
-            if not os.path.exists(old_path):
-                raise FileNotFoundError(f"源文件不存在: {old_path}")
-            
-            # 创建目标目录（包括所有不存在的父目录）
-            target_dir = os.path.dirname(new_path)
-            os.makedirs(target_dir, exist_ok=True)
-            
-            # 执行文件移动（可自动覆盖同名文件）
-            shutil.move(old_path, new_path)
-            return True
-            
-        except Exception as e:
-            print(f"[文件整理失败] 错误类型: {type(e).__name__}, 详情: {str(e)}")
-            return False
+        if key in info1:
+            merged_info[key] = info1[key]
+        elif key in info2:
+            merged_info[key] = info2[key]
+    
+    # 特殊处理short_content/short content字段
+    if "short_content" in merged_info or "short content" in merged_info:
+        short1 = merged_info.get("short_content") or merged_info.get("short content")
+        merged_info.pop("short content", None)
+        merged_info["short_content"] = short1
+    
+    return merged_info
