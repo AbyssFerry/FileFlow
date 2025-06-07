@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from docx import Document
-from PyPDF2 import PdfReader
+import pdfplumber  # 替换 PyPDF2
 from datetime import datetime
 
 
@@ -35,12 +35,14 @@ def parse_folder_path(directory):
                         file_info["content"] = f.read()
 
                 elif ext == '.pdf':
-                    # 读取PDF文件
-                    reader = PdfReader(file_path)
-                    content = []
-                    for page in reader.pages:
-                        content.append(page.extract_text())
-                    file_info["content"] = "\n".join(content)
+                    # 使用 pdfplumber 读取 PDF 文件
+                    with pdfplumber.open(file_path) as pdf:
+                        content = []
+                        for page in pdf.pages:
+                            text = page.extract_text()
+                            if text:  # 确保文本不为空
+                                content.append(text)
+                        file_info["content"] = "\n".join(content)
 
                 elif ext in ('.xlsx', '.xls'):
                     # 读取Excel文件
@@ -64,52 +66,3 @@ def parse_folder_path(directory):
             file_info_list.append(file_info)
 
     return file_info_list
-"""
-def interactive_test():
-    
-    print("\n" + "="*50)
-    print("文件解析器测试工具")
-    print("="*50)
-    
-    while True:
-        # 1. 获取用户输入的目录路径
-        test_dir = input("\n请输入要测试的目录路径（输入q退出）: ").strip()
-        if test_dir.lower() == 'q':
-            break
-            
-        # 2. 检查目录是否存在
-        if not os.path.isdir(test_dir):
-            print(f"错误：目录不存在 - {test_dir}")
-            continue
-            
-        # 3. 执行文件解析
-        print(f"\n正在解析目录: {test_dir}")
-        try:
-            results = parse_folder_path(test_dir)
-            
-            # 4. 显示解析结果统计
-            print(f"\n解析完成！共找到 {len(results)} 个文件")
-            print("="*50)
-            
-            # 5. 显示每个文件的解析详情
-            for i, file_info in enumerate(results, 1):
-                print(f"\n【文件{i}】")
-                print(f"名称: {file_info['name']}")
-                print(f"路径: {file_info['absolute_path']}")
-                print(f"类型: {file_info['extension']}")
-                print(f"创建时间: {file_info['created_time']}")
-                print(f"大小: {file_info['size_bytes']} 字节")
-                
-                # 内容预览（只显示前100字符）
-                content_preview = str(file_info['content'])[:100]
-                if len(str(file_info['content'])) > 100:
-                    content_preview += "..."
-                print("内容预览:", content_preview)
-                
-        except Exception as e:
-            print(f"解析过程中出错: {str(e)}")
-            
-    print("\n测试工具已退出")
-
-if __name__ == "__main__":
-    interactive_test()"""
