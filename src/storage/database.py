@@ -6,7 +6,7 @@ def get_connection():
 def fileAdd(file_data: dict):
     sql = '''
     INSERT INTO file (name, absolute_path, extension, created_time, size, ai_description, content, short_content)
-    VALUES (?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     '''
     values = (
         file_data["name"],
