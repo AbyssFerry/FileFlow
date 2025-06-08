@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from docx import Document
-from PyPDF2 import PdfReader
+import pdfplumber  # 替换 PyPDF2
 from datetime import datetime
 
 
@@ -35,12 +35,14 @@ def parse_folder_path(directory):
                         file_info["content"] = f.read()
 
                 elif ext == '.pdf':
-                    # 读取PDF文件
-                    reader = PdfReader(file_path)
-                    content = []
-                    for page in reader.pages:
-                        content.append(page.extract_text())
-                    file_info["content"] = "\n".join(content)
+                    # 使用 pdfplumber 读取 PDF 文件
+                    with pdfplumber.open(file_path) as pdf:
+                        content = []
+                        for page in pdf.pages:
+                            text = page.extract_text()
+                            if text:  # 确保文本不为空
+                                content.append(text)
+                        file_info["content"] = "\n".join(content)
 
                 elif ext in ('.xlsx', '.xls'):
                     # 读取Excel文件
