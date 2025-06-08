@@ -2,7 +2,7 @@ import os
 import sqlite3
 import pandas as pd
 from docx import Document
-from PyPDF2 import PdfReader
+import pdfplumber  # Changed from PyPDF2 to pdfplumber
 from datetime import datetime
 
 def parse_file(file_path):
@@ -17,10 +17,10 @@ def parse_file(file_path):
     }
 
     try:
-        # PDF文件处理
+        # PDF文件处理 (using pdfplumber now)
         if file_info["extension"] == '.pdf':
-            reader = PdfReader(file_path)
-            file_info["content"] = "\n".join([page.extract_text() for page in reader.pages])
+            with pdfplumber.open(file_path) as pdf:
+                file_info["content"] = "\n".join([page.extract_text() for page in pdf.pages])
         
         # Excel文件处理
         elif file_info["extension"] in ('.xlsx', '.xls'):
@@ -81,4 +81,3 @@ def get_directories(db_path='file_database.db'):
                  substr(path, 1, length(path)-length(name)) as directory_description
                  FROM files''')
     return [{"path": row[0], "description": row[1]} for row in c.fetchall()]
-
