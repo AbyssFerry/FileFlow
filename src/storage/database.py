@@ -5,16 +5,18 @@ def get_connection():
 """ ****************************fileAdd模块************************ """
 def fileAdd(file_data: dict):
     sql = '''
-    INSERT INTO file (name, absolute_path, extension, size, ai_description, created_time)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO file (name, absolute_path, extension, created_time, size, ai_description, content, short_content)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     '''
     values = (
         file_data["name"],
         file_data["absolute_path"],
         file_data["extension"],
+        file_data["created_time"],
         file_data["size"],
         file_data["ai_description"],
-        file_data["created_time"]
+        file_data["content"],    
+        file_data["short_content"]
     )
 
     with get_connection() as conn:
@@ -100,15 +102,15 @@ def fileSearchByPath(path: str):
 """ ****************************folderAdd模块************************ """
 def folderAdd(folder_data: dict):
     sql = '''
-    INSERT INTO directory (name, absolute_path, ai_description, size, created_time)
+    INSERT INTO directory (name, absolute_path, created_time, size, ai_description)
     VALUES (?, ?, ?, ?, ?)
     '''
     values = (
         folder_data["name"],
         folder_data["absolute_path"],
-        folder_data["ai_description"],
+        folder_data["created_time"],
         folder_data["size"],
-        folder_data["created_time"]
+        folder_data["ai_description"]
     )
 
     with get_connection() as conn:
