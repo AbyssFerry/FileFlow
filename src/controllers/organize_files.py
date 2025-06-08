@@ -1,45 +1,61 @@
-from typing import Dict, Any
-import sqlite3
+import os
+import shutil
 
-def merge_file_info(info1: Dict[str, Any], info2: Dict[str, Any]) -> Dict[str, Any]:
+def organize_files(files):
     """
-    合并两个文件信息字典并去除重复字段，特别处理文件内容(content)和创建时间(created_time)
+    将文件从原路径移动到新路径，如果新路径不存在则创建目录
     
-    参数:
-        info1: 第一个文件信息字典，包含文件名、路径、扩展名、创建时间、大小等内容
-        info2: 第二个文件信息字典，包含类似结构的信息
-        
-    返回:
-        合并并去重后的新字典，优先保留更完整的信息
-        
-    示例:
-        >>> file1 = {"name": "公示1", "content": "内容1", "created_time": "2023-11-20"}
-        >>> file2 = {"name": "公示1", "content": "内容2", "size": "2048"}
-        >>> merge_file_info(file1, file2)
-        {"name": "公示1", "content": "内容1", "created_time": "2023-11-20", "size": "2048"}
+    Args:
+        files (list): 文件信息列表，每个元素是一个包含文件信息的字典
+            [
+                {
+                    "name": "",
+                    "absolute_path": "",
+                    "new_absolute_path": "",
+                    ...
+                }
+            ]
+    
+    Returns:
+        str: "成功"（如果所有文件移动成功）或 "部分文件处理失败"（如果有文件移动失败）
     """
-    merged_info = {}
+    success_count = 0
+    failure_count = 0
     
-    # 优先处理内容字段，保留更长的内容
-    if "content" in info1 or "content" in info2:
-        content1 = info1.get("content", "")
-        content2 = info2.get("content", "")
-        merged_info["content"] = content1 if len(content1) > len(content2) else content2
+    for file_info in files:
+        source_path = file_info["absolute_path"]
+        dest_path = file_info["new_absolute_path"]
+        
+        # 确保源文件存在
+        if not os.path.exists(source_path):
+            print(f"警告: 源文件不存在，跳过: {source_path}")
+            failure_count += 1
+            continue
+        
+        # 创建目标目录（如果不存在）
+        dest_dir = os.path.dirname(dest_path)
+        if not os.path.exists(dest_dir):
+            try:
+                os.makedirs(dest_dir)
+                print(f"已创建目录: {dest_dir}")
+            except OSError as e:
+                print(f"错误: 无法创建目录 {dest_dir}: {e}")
+                failure_count += 1
+                continue
+        
+        # 移动文件
+        try:
+            shutil.move(source_path, dest_path)
+            print(f"已移动文件: {source_path} -> {dest_path}")
+            success_count += 1
+        except Exception as e:
+            print(f"错误: 无法移动文件 {source_path} 到 {dest_path}: {e}")
+            failure_count += 1
     
-    # 合并其他字段，优先保留info1的值
-    for key in set(info1.keys()).union(info2.keys()):
-        if key == "content":
-            continue  # 已经处理过
-            
-        if key in info1:
-            merged_info[key] = info1[key]
-        elif key in info2:
-            merged_info[key] = info2[key]
-    
-    # 特殊处理short_content/short content字段
-    if "short_content" in merged_info or "short content" in merged_info:
-        short1 = merged_info.get("short_content") or merged_info.get("short content")
-        merged_info.pop("short content", None)
-        merged_info["short_content"] = short1
-    
-    return merged_info
+    # 返回处理结果
+    if failure_count == 0:
+        return True
+    elif success_count > 0:
+        return "部分文件处理成功"
+    else:
+        return "所有文件处理失败"
