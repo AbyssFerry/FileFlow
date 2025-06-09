@@ -109,7 +109,7 @@ def collect_file_info(directory, total_files, supported_extensions):
             content = read_file_content(file_path, ext)
             
             if not content.strip():
-                file_info["content"] = "<空文件>"
+                file_info["content"] = f"{filename}"            # 如果读取失败，内容设为文件名
             else:
                 file_info["content"] = content
                 
@@ -118,7 +118,11 @@ def collect_file_info(directory, total_files, supported_extensions):
                 file_info["content"] = f"{filename}"
                 
             file_info_list.append(file_info)
-    
+
+    # 测试使用@@@@
+    with open(r"D:\vs code\python\FileFlow\testdoc\file_info_list.json", "w", encoding="utf-8") as f:
+        json.dump(file_info_list, f, ensure_ascii=False, indent=2)
+
     return file_info_list, current_file
 
 def process_files_with_ai(file_info_list, classifier):
@@ -156,11 +160,11 @@ def classify_and_standardize(summarized_files, classifier):
         classified_files = classifier.classify_files(summarized_files)
 
         # 输出 summarized_files 到文件@@@@
-        with open("summarized_files.json", "w", encoding="utf-8") as f:
+        with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
             json.dump(summarized_files, f, ensure_ascii=False, indent=2)
 
         # 输出 classified_files 到文件@@@@
-        with open("classified_files.json", "w", encoding="utf-8") as f:
+        with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
             json.dump(classified_files, f, ensure_ascii=False, indent=2)
 
 

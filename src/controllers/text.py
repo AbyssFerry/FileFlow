@@ -9,14 +9,14 @@ sys.stderr = open(os.devnull, 'w')
 
 large_data = r"D:\vs code\python\FileFlow\testdoc\large_test"
 small_data = r"D:\vs code\python\FileFlow\testdoc\small_test"
-
+tiny_data = r"D:\vs code\python\FileFlow\testdoc\tiny_test"
 
 if __name__ == "__main__":
     reset_database()
     print(fileShow(),folderShow())
     # 1
 
-    flag = parse_folder_path(small_data)
+    flag = parse_folder_path(tiny_data)
     if flag == 1:
         print("AC")
     # 2
