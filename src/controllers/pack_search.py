@@ -1,43 +1,44 @@
+import sys
 import os
-import sqlite3
-from datetime import datetime
+from typing import List, Dict, Any
+from get_search_target_files import get_search_target_files
 
-def pack(user_input: str, db_items: list) -> dict:
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(project_root)
+
+from src.controllers_for_ai.ai_processing import FileClassifier
+from src.storage.database import fileShow
+
+def pack_search(query: str) -> List[Dict[str, Any]]:
     """
-    打包功能
+    根据查询字符串搜索匹配的文件
+    
     参数:
-        user_input: 用户输入字符串
-        db_items: 数据库中的文件和目录列表
+        query (str): 搜索查询字符串，例如"关于奖学金的文件"
+        
     返回:
-        结构:
-        {
-            "query_statement": 打包后的查询语句,
-            "file_statements": 文件信息列表,
-            "dir_statements": 目录信息列表
-        }
+        List[Dict[str, Any]]: 匹配的文件列表，包含详细文件信息
     """
-    # 模块核心处理逻辑
-    query = f"QUERY: {user_input.upper()}"  # 示例查询语句生成
-
-    # 分离文件和目录
-    files = []
-    dirs = []
-    for item in db_items:
-        target = files if item.get('type') == 'file' else dirs
-        target.append({
-            'name': item['name'],
-            'description': item.get('description', ''),
-            'path': item['path']
-        })
-
-    return {
-        "query_statement": query,
-        "file_statements": [
-            f"FILE: {f['name']} | DESC: {f['description']} | PATH: {f['path']}"
-            for f in files
-        ],
-        "dir_statements": [
-            f"DIR: {d['name']} | DESC: {d['description']} | PATH: {d['path']}"
-            for d in dirs
-        ]
-    }
+    # 1. 接收查询参数（通过函数形参query已接收）
+    
+    # 2. 调用数据库获取所有文件
+    try:
+        files = fileShow()  # 调用数据库函数
+    except Exception as e:
+        raise RuntimeError(f"数据库查询失败: {str(e)}")
+        
+    # 3. 调用AI分类器获取匹配文件
+    try:
+        classifier = FileClassifier()  # 实例化
+        match_files = classifier.get_match_files(query, files)
+    except Exception as e:
+        raise RuntimeError(f"AI匹配过程出错: {str(e)}")
+    
+    # 5. 获取目标文件详细信息
+    try:
+        result_files = get_search_target_files(match_files)
+    except Exception as e:
+        raise RuntimeError(f"文件信息获取失败: {str(e)}")
+    
+    # 6. 返回最终结果
+    return result_files

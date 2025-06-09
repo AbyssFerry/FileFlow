@@ -1,83 +1,126 @@
+import time
+from datetime import datetime
+from move_file import move_file
+from pack_init_file import pack_init_file
+import sys
 import os
-import sqlite3
+from pathlib import Path
 import pandas as pd
 from docx import Document
-import pdfplumber  # Changed from PyPDF2 to pdfplumber
-from datetime import datetime
+import pdfplumber
+import logging
 
-def parse_file(file_path):
-    """解析单个文件的核心函数"""
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(project_root)
+
+from src.controllers_for_ai.ai_processing import FileClassifier
+from src.storage.database import folderShow
+
+# Configure logging
+logging.getLogger("pdfplumber").setLevel(logging.ERROR)
+
+def parser_file(file_path):
+    """
+    处理文件并返回移动后的新路径和原因
+    
+    参数:
+        file_path (str): 要处理的文件路径
+        
+    返回:
+        dict: 包含新路径和移动原因的字典
+    """
+    # 1. 获取文件信息
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"文件不存在: {file_path}")
+    
+    # 获取文件基本信息
+    filename = os.path.basename(file_path)
+    name, ext = os.path.splitext(filename)
+    ext = ext.lower()
+    
+    # 只处理支持的文件类型
+    supported_extensions = {'.txt', '.pdf', '.xlsx', '.xls', '.docx'}
+    if ext not in supported_extensions:
+        raise ValueError(f"不支持的文件类型: {ext}")
+    
+    # 构建文件信息字典
     file_info = {
-        "name": os.path.basename(file_path),
+        "name": name,
         "absolute_path": os.path.abspath(file_path),
-        "extension": os.path.splitext(file_path)[1].lower(),
+        "extension": ext,
         "created_time": datetime.fromtimestamp(os.path.getctime(file_path)).strftime("%Y-%m-%d %H:%M:%S"),
-        "size_bytes": os.path.getsize(file_path),
-        "content": ""
+        "size": os.path.getsize(file_path),
+        "content": "",
+        "ai_description": "",
+        "short_content": "",
+        "reason_for_move": ""
     }
 
+    # 读取文件内容
     try:
-        # PDF文件处理 (using pdfplumber now)
-        if file_info["extension"] == '.pdf':
-            with pdfplumber.open(file_path) as pdf:
-                file_info["content"] = "\n".join([page.extract_text() for page in pdf.pages])
-        
-        # Excel文件处理
-        elif file_info["extension"] in ('.xlsx', '.xls'):
-            df = pd.read_excel(file_path)
-            file_info["content"] = df.to_string()
-        
-        # Word文件处理
-        elif file_info["extension"] == '.docx':
-            doc = Document(file_path)
-            file_info["content"] = "\n".join([para.text for para in doc.paragraphs])
-        
-        # 文本文件处理
-        elif file_info["extension"] == '.txt':
-            with open(file_path, 'r', encoding='utf-8') as f:
+        if ext == '.txt':
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
                 file_info["content"] = f.read()
+        elif ext == '.pdf':
+            with pdfplumber.open(file_path) as pdf:
+                max_pages = 10  # 只读取前10页
+                file_info["content"] = "\n".join(
+                    page.extract_text() for i, page in enumerate(pdf.pages) 
+                    if i < max_pages and page.extract_text()
+                )
+        elif ext in ('.xlsx', '.xls'):
+            file_info["content"] = pd.read_excel(file_path, sheet_name=0).to_string()
+        elif ext == '.docx':
+            doc = Document(file_path)
+            file_info["content"] = "\n".join(
+                p.text for p in doc.paragraphs if p.text.strip()
+            )
         
-        else:
-            file_info["content"] = "<不支持的文件格式>"
-    
+        # 确保内容不为空
+        if not file_info["content"].strip():
+            file_info["content"] = "<空文件>"
+            
     except Exception as e:
         file_info["content"] = f"<读取错误: {str(e)}>"
-    
-    return file_info
+        raise RuntimeError(f"读取文件 {file_path} 内容时出错: {str(e)}")
 
-def parse_folder(directory):
-    """处理目录中的所有文件（与数据库交互前）"""
-    return [parse_file(os.path.join(directory, f)) 
-            for f in os.listdir(directory) 
-            if os.path.isfile(os.path.join(directory, f))]
+    # 2. 调用AI总结文件
+    classifier = FileClassifier()
+    try:
+        summarized_file = classifier.summary_file(file_info)
+        
+        # 验证总结结果
+        if not summarized_file.get("ai_description") or not summarized_file.get("short_content"):
+            raise RuntimeError(f"文件 {file_info['name']} 总结失败，结果不完整")
+            
+    except Exception as e:
+        raise RuntimeError(f"总结文件 {file_info['name']} 时出错: {str(e)}")
 
+    # 3. 获取目录信息
+    folds = folderShow()
+    
+    # 4. 调用AI分类函数
+    try:
+        fileNewPath = classifier.classify_file(summarized_file, folds)
+        
+        # 验证分类结果
+        if not fileNewPath:
+            raise RuntimeError("分类结果无效")
+            
+    except Exception as e:
+        raise RuntimeError(f"分类文件时发生异常: {str(e)}")
 
-def save_to_db(file_data, db_path='file_database.db'):
-    """将解析结果存入数据库（对应架构图中间模块）"""
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
+    # 5. 初始化文件打包
+    try:
+        pack_init_file(fileNewPath) 
+    except Exception as e:
+        raise RuntimeError(f"打包初始文件时出错: {str(e)}")
     
-    # 创建表（如果不存在）
-    c.execute('''CREATE TABLE IF NOT EXISTS files
-                 (name TEXT, path TEXT PRIMARY KEY, extension TEXT, 
-                  created_time TEXT, size INTEGER, content TEXT)''')
-    
-    # 插入或更新数据
-    for item in file_data:
-        c.execute('''INSERT OR REPLACE INTO files VALUES 
-                     (?, ?, ?, ?, ?, ?)''', 
-                     (item['name'], item['absolute_path'], item['extension'],
-                      item['created_time'], item['size_bytes'], item['content']))
-    
-    conn.commit()
-    conn.close()
-
-def get_directories(db_path='file_database.db'):
-    """从数据库获取目录信息（对应架构图功能2）"""
-    conn = sqlite3.connect(db_path)
-    c = conn.cursor()
-    c.execute('''SELECT DISTINCT 
-                 substr(path, 1, length(path)-length(name)) as directory_path,
-                 substr(path, 1, length(path)-length(name)) as directory_description
-                 FROM files''')
-    return [{"path": row[0], "description": row[1]} for row in c.fetchall()]
+    # 6. 移动文件
+    try:
+        newPath_and_reason = move_file(fileNewPath)
+    except Exception as e:
+        raise RuntimeError(f"移动文件时出错: {str(e)}")
+     
+    # 7. 返回结果
+    return newPath_and_reason
