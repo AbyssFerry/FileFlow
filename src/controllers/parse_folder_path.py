@@ -31,30 +31,38 @@ def scan_directory(directory):
     
     return total_files, supported_extensions
 
-def read_file_content(file_path, ext):
-    """读取不同类型文件的内容"""
+def read_file_content(file_path, ext, max_length=1000):
+    """读取不同类型文件的内容，并限制最大长度"""
     try:
+        content = ""
         if ext == '.txt':
             with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
-                return f.read()
+                content = f.read()
         elif ext == '.pdf':
             with pdfplumber.open(file_path) as pdf:
                 max_pages = 10
-                return "\n".join(
-                    page.extract_text() for i, page in enumerate(pdf.pages) 
-                    if i < max_pages and page.extract_text()
-                )   
+                texts = []
+                for i, page in enumerate(pdf.pages):
+                    if i >= max_pages:
+                        break
+                    text = page.extract_text()
+                    if text:
+                        texts.append(text)
+                content = "\n".join(texts)
         elif ext in ('.xlsx', '.xls'):
-            return pd.read_excel(file_path, sheet_name=0).to_string()
+            content = pd.read_excel(file_path, sheet_name=0).to_string()
         elif ext == '.docx':
             doc = Document(file_path)
-            return "\n".join(
+            content = "\n".join(
                 p.text for p in doc.paragraphs if p.text.strip()
             )
         elif ext == '.doc':
-            return read_doc_file(file_path)
+            content = read_doc_file(file_path)
         
-        return ""
+        # 限制内容长度
+        if len(content) > max_length:
+            content = content[:max_length] + "\n...[后面内容省略]"
+        return content
     except Exception as e:
         print(f"读取文件 {file_path} 内容时出错: {str(e)}")
         return ""
