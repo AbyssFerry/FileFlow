@@ -1,6 +1,5 @@
 import sqlite3
 
-
 def create_database():
     # 创建数据库连接
     conn = sqlite3.connect('fileflow_database.db')
@@ -11,7 +10,7 @@ def create_database():
     CREATE TABLE IF NOT EXISTS directory (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT CHECK(LENGTH(name) > 0),
-        absolute_path TEXT UNIQUE NOT NULL CHECK(absolute_path GLOB '/*'),
+        absolute_path TEXT UNIQUE NOT NULL,
         created_time TEXT DEFAULT (datetime('now', 'localtime')),
         register_time TEXT DEFAULT (datetime('now', 'localtime')),
         size INTEGER DEFAULT 0 CHECK(size >= 0),
@@ -24,7 +23,7 @@ def create_database():
     CREATE TABLE IF NOT EXISTS file (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT CHECK(LENGTH(name) > 0),
-        absolute_path TEXT UNIQUE NOT NULL CHECK(absolute_path GLOB '/*'),
+        absolute_path TEXT UNIQUE NOT NULL,
         extension TEXT DEFAULT 'none',
         created_time TEXT DEFAULT (datetime('now', 'localtime')),
         modified_time TEXT DEFAULT (datetime('now', 'localtime')),
