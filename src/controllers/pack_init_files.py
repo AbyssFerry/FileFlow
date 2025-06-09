@@ -1,96 +1,70 @@
-from typing import Dict, Any
+import sys
+from pathlib import Path
 import sqlite3
-from datetime import datetime
 
-def merge_file_info(info1: Dict[str, Any], info2: Dict[str, Any], db_path: str = 'file_database.db') -> Dict[str, Any]:
+
+# 添加项目根目录到Python路径 (使用Path对象自动处理路径分隔符)
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
+
+# 现在可以使用绝对导入
+from src.storage.database import folderAdd, fileAdd
+from src.storage.database_build import create_database
+
+def pack_init_files(classified_files):
     """
-    合并两个文件信息字典并去除重复字段，然后将结果存入数据库
+    处理classified_files数据并调用数据库添加文件和文件夹
+    所有路径存储使用SQL风格的正斜杠(/)
     
-    参数:
-        info1: 第一个文件信息字典
-        info2: 第二个文件信息字典
-        db_path: 数据库文件路径(可选)
+    Args:
+        classified_files (dict): 包含文件和分类信息的字典
+            {
+                "files": [...],  # 文件列表
+                "categories": [...]  # 分类列表
+            }
     
-    返回:
-        合并并去重后的新字典
+    Returns:
+        str: "成功"
     """
-    # 合并字典
-    merged_info = {}
-    
-    # 合并第一个字典
-    for key, value in info1.items():
-        if key not in merged_info:
-            merged_info[key] = value
-    
-    # 合并第二个字典，跳过已存在的键
-    for key, value in info2.items():
-        if key not in merged_info:
-            merged_info[key] = value
-        elif key == "created_time" and value == info1.get(key):
-            continue
-    
-    # 存入数据库
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+    # 处理files数据并调用fileAdd
+    for file_info in classified_files["files"]:
+        # 标准化路径为SQL风格
+        abs_path = file_info["new_absolute_path"].replace('\\', '/')
         
-        # 创建表（如果不存在）
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS merged_file_info (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            absolute_path TEXT UNIQUE NOT NULL,
-            extension TEXT,
-            created_time TEXT,
-            size INTEGER,
-            description TEXT,
-            short_content TEXT,
-            content TEXT,
-            merge_time TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-        
-        # 准备数据（修正字段名并添加合并时间）
-        db_data = {
-            'name': merged_info.get('name'),
-            'absolute_path': merged_info.get('absolut_path'),  # 修正拼写错误
-            'extension': merged_info.get('extension'),
-            'created_time': merged_info.get('created_time'),
-            'size': int(merged_info.get('size', 0)) if merged_info.get('size') else 0,
-            'description': merged_info.get('description'),
-            'short_content': merged_info.get('short_content'),
-            'content': merged_info.get('content'),
-            'merge_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # 构建file数据结构
+        file_data = {
+            "name": file_info["name"],
+            "absolute_path": abs_path,  # 使用标准化路径
+            "extension": file_info["extension"],
+            "created_time": file_info["created_time"],
+            "size": file_info["size"],
+            "ai_description": file_info["ai_description"],
+            "content": file_info["content"],  # 保留但不使用
+            "short_content": file_info["short_content"]  # 保留但不使用
         }
-        
-        # 使用UPSERT语法插入或更新数据
-        cursor.execute('''
-        INSERT INTO merged_file_info (
-            name, absolute_path, extension, created_time, size,
-            description, short_content, content, merge_time
-        ) VALUES (
-            :name, :absolute_path, :extension, :created_time, :size,
-            :description, :short_content, :content, :merge_time
-        )
-        ON CONFLICT(absolute_path) DO UPDATE SET
-            name = excluded.name,
-            extension = excluded.extension,
-            created_time = excluded.created_time,
-            size = excluded.size,
-            description = excluded.description,
-            short_content = excluded.short_content,
-            content = excluded.content,
-            merge_time = excluded.merge_time
-        ''', db_data)
-        
-        conn.commit()
-        
-    except sqlite3.Error as e:
-        print(f"数据库操作失败: {str(e)}")
-        if conn:
-            conn.rollback()
-    finally:
-        if conn:
-            conn.close()
+        """print("-"*20)   # @@@@@
+        print("模块1：file_date") # @@@@@
+        print(file_data)  # @@@@@
+        print("-"*20)   # @@@@@"""
+        fileAdd(file_data)
     
-    return merged_info
+    # 处理categories数据并调用folderAdd
+    for category_info in classified_files["categories"]:
+        # 标准化路径为SQL风格
+        abs_path = category_info["absolute_path"].replace('\\', '/')
+        
+        # 构建folder数据结构
+        folder_data = {
+            "name": category_info["name"],
+            "absolute_path": abs_path,  # 使用标准化路径
+            "created_time": category_info["created_time"],
+            "size": category_info["size"],
+            "ai_description": category_info["ai_description"]
+        }
+        folderAdd(folder_data)
+        """print("-"*20)   # @@@@@
+        print("模块1：folder_data") # @@@@@
+        print(folder_data)  # @@@@@
+        print("-"*20)   # @@@@@"""
+
+    return "成功"
