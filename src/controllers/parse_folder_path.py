@@ -108,7 +108,7 @@ def parse_folder_path(directory: str) -> bool:
                         file_info["content"] = "<空文件>"
                         
                 except Exception as e:
-                    file_info["content"] = f"<读取错误: {str(e)}>"
+                    file_info["content"] = f"{filename}" # 将读取出错的文件内容直接设定为文件名
                     print(f"读取文件 {file_path} 内容时出错: {str(e)}")
 
                 file_info_list.append(file_info)
@@ -133,7 +133,7 @@ def parse_folder_path(directory: str) -> bool:
 
                 summarized_file = classifier.summary_file(file_info)
                 if not summarized_file.get("ai_description") or not summarized_file.get("short_content"):
-                    print(f"[{i+1}/{total_ai_files}] 文件 {file_info['name']} 总结失败，结果不完整")
+                    print(f"[{i+1}/{total_ai_files}] 文件 {file_info['name']} 总结失败，结果不完整。")
                     continue
                     
                 summarized_files.append(summarized_file)
