@@ -1,44 +1,24 @@
 import os
 import shutil
-from typing import Dict
 
-class FileMover:
-    """文件移动模块"""
+def move_file(fileNewPath):
+    # Extract necessary information from input
+    absolute_path = fileNewPath["absolute_path"]
+    new_absolute_path = fileNewPath["new_absolute_path"]
+    reason_for_move = fileNewPath["reason_for_move"]
+    name = fileNewPath["name"]
     
-    @staticmethod
-    def move_file(file_info: Dict[str, str]) -> bool:
-        """
-        核心移动功能
-        
-        参数:
-            file_info: 必须包含路径字段:
-                {
-                    "文件新路径": "/target/path/file.txt",  # 必须
-                    "文件旧路径": "/source/path/file.txt"   # 必须
-                }
-        
-        返回:
-            bool: 移动是否成功
-        """
-        try:
-            # 验证必要字段
-            if not all(key in file_info for key in ["文件新路径", "文件旧路径"]):
-                raise ValueError("缺少必要路径参数")
-            
-            src = file_info["文件旧路径"]
-            dst = file_info["文件新路径"]
-            
-            # 检查源文件存在性
-            if not os.path.exists(src):
-                raise FileNotFoundError(f"源文件不存在: {src}")
-            
-            # 创建目标目录
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            
-            # 执行移动
-            shutil.move(src, dst)
-            return True
-            
-        except Exception as e:
-            print(f"[文件移动失败] 错误: {type(e).__name__} - {str(e)}")
-            return False
+    # Create directory structure if it doesn't exist
+    os.makedirs(os.path.dirname(new_absolute_path), exist_ok=True)
+    
+    # Move the file
+    shutil.move(absolute_path, new_absolute_path)
+    
+    # Prepare the response
+    newPath_and_reason = {
+        "name": name,
+        "new_absolute_path": new_absolute_path,
+        "reason_for_move": reason_for_move
+    }
+    
+    return newPath_and_reason

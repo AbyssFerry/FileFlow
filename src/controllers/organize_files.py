@@ -17,7 +17,9 @@ def organize_files(files):
             ]
     
     Returns:
-        str: "成功"（如果所有文件移动成功）或 "部分文件处理失败"（如果有文件移动失败）
+        tuple: (bool, str) 
+            - 第一个元素表示整体是否成功 (True/False)
+            - 第二个元素是详细的执行结果描述
     """
     success_count = 0
     failure_count = 0
@@ -54,8 +56,8 @@ def organize_files(files):
     
     # 返回处理结果
     if failure_count == 0:
-        return True
+        return (True, "所有文件处理成功")
     elif success_count > 0:
-        return "部分文件处理成功"
+        return (False, f"部分文件处理成功（成功：{success_count}，失败：{failure_count}）")
     else:
-        return "所有文件处理失败"
+        return (False, "所有文件处理失败")

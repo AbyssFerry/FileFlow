@@ -1,68 +1,170 @@
 import os
+import sys
+from pathlib import Path
 import pandas as pd
 from docx import Document
 import pdfplumber  # 替换 PyPDF2
+import logging
 from datetime import datetime
+from organize_files import organize_files
+from pack_init_files import pack_init_files
 
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(project_root)
 
-def parse_folder_path(directory):
-    file_info_list = []
+from src.storage.database import folderShow
+from src.controllers_for_ai.ai_processing import FileClassifier  # 修改导入语句
 
-    # 遍历目录中的所有文件
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-        # 跳过子目录
-        if os.path.isfile(file_path):
-            # 获取文件基本信息
-            file_info = {
-                "name": filename,
-                "absolute_path": os.path.abspath(file_path),
-                "extension": os.path.splitext(filename)[1].lower(),
-                "created_time": datetime.fromtimestamp(
-                    os.path.getctime(file_path)
-                ).strftime("%Y-%m-%d %H:%M:%S"),
-                "size_bytes": os.path.getsize(file_path),
-                "content": ""
-            }
+logging.getLogger("pdfplumber").setLevel(logging.ERROR)
 
-            # 根据文件扩展名读取内容
+def parse_folder_path(directory: str) -> bool:
+    """
+    完整的文件处理流程（严格按10个步骤实现）
+    只处理 txt, pdf, xlsx, xls, docx 文件
+    
+    参数:
+        directory: 要处理的目录路径
+        
+    返回:
+        bool: 处理是否成功
+    """
+    try:
+        # === 步骤1: 读取目录并提取文件信息 ===
+        file_info_list = []
+        supported_extensions = {'.txt', '.pdf', '.xlsx', '.xls', '.docx'}
+        
+        for root, _, filenames in os.walk(directory):
+            for filename in filenames:
+                file_path = os.path.join(root, filename)
+                
+                # 提取文件基本信息
+                name, ext = os.path.splitext(filename)
+                ext = ext.lower()
+                
+                # 跳过不支持的文件类型
+                if ext not in supported_extensions:
+                    continue
+                
+                file_info = {
+                    "name": name,
+                    "absolute_path": os.path.abspath(file_path),
+                    "extension": ext,
+                    "created_time": datetime.fromtimestamp(
+                        os.path.getctime(file_path)
+                    ).strftime("%Y-%m-%d %H:%M:%S"),
+                    "size": os.path.getsize(file_path),
+                    "content": "",
+                    "ai_description": "",
+                    "short_content": "",
+                    "reason_for_move": ""
+                }
+
+                # 读取文件内容
+                try:
+                    if ext == '.txt':
+                        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                            file_info["content"] = f.read()
+                    elif ext == '.pdf':
+                        # 限制PDF读取页数
+                            with pdfplumber.open(file_path) as pdf:
+                                max_pages = 10  # 只读取前10页
+                                file_info["content"] = "\n".join(
+                                    page.extract_text() for i, page in enumerate(pdf.pages) 
+                                    if i < max_pages and page.extract_text()
+                                )   
+                    elif ext in ('.xlsx', '.xls'):
+                        file_info["content"] = pd.read_excel(file_path, sheet_name=0).to_string()
+                    elif ext == '.docx':
+                        doc = Document(file_path)
+                        file_info["content"] = "\n".join(
+                            p.text for p in doc.paragraphs if p.text.strip()
+                        )
+                    
+                    # 确保内容不为空
+                    if not file_info["content"].strip():
+                        file_info["content"] = "<空文件>"
+                        
+                except Exception as e:
+                    file_info["content"] = f"<读取错误: {str(e)}>"
+                    print(f"读取文件 {file_path} 内容时出错: {str(e)}")
+
+                file_info_list.append(file_info)
+
+        # === 步骤2-3: 调用AI总结每个文件 ===
+        classifier = FileClassifier()
+        summarized_files = []
+        
+        for file_info in file_info_list:
             try:
-                ext = file_info["extension"]
+                # 跳过内容无效的文件
+                if file_info["content"].startswith(("<读取错误:", "<空文件>")):
+                    print(f"跳过无效文件: {file_info['name']} - {file_info['content']}")
+                    continue
 
-                if ext == '.txt':
-                    # 读取文本文件
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        file_info["content"] = f.read()
 
-                elif ext == '.pdf':
-                    # 使用 pdfplumber 读取 PDF 文件
-                    with pdfplumber.open(file_path) as pdf:
-                        content = []
-                        for page in pdf.pages:
-                            text = page.extract_text()
-                            if text:  # 确保文本不为空
-                                content.append(text)
-                        file_info["content"] = "\n".join(content)
-
-                elif ext in ('.xlsx', '.xls'):
-                    # 读取Excel文件
-                    df = pd.read_excel(file_path)
-                    file_info["content"] = df.to_string()
-
-                elif ext == '.docx':
-                    # 读取Word文件
-                    doc = Document(file_path)
-                    content = []
-                    for para in doc.paragraphs:
-                        content.append(para.text)
-                    file_info["content"] = "\n".join(content)
-
-                else:
-                    file_info["content"] = "<不支持的文件格式>"
-
+                summarized_file = classifier.summary_file(file_info)
+                # 验证总结结果
+                if not summarized_file.get("ai_description") or not summarized_file.get("short_content"):
+                    print(f"文件 {file_info['name']} 总结失败，结果不完整")
+                    continue
+                    
+                summarized_files.append(summarized_file)
+                
             except Exception as e:
-                file_info["content"] = f"<读取文件时出错: {str(e)}>"
+                print(f"总结文件 {file_info['name']} 时出错: {str(e)}")
+                continue
 
-            file_info_list.append(file_info)
+        if not summarized_files:
+            print("警告: 没有成功总结任何文件")
+            return False
 
-    return file_info_list
+        # === 步骤4-5: 调用AI分类文件 ===
+        try:
+            classified_files = classifier.classify_files(summarized_files)
+            
+            # 验证分类结果
+            if not classified_files or not classified_files.get("files") or not classified_files.get("categories"):
+                print("错误: 分类结果无效")
+                return False
+                
+        except Exception as e:
+            print(f"分类文件时发生异常: {str(e)}")
+            return False
+
+        # === 步骤7: 组织文件 ===
+        try:
+            organize_files(classified_files["files"])
+        except Exception as e:
+            print(f"组织文件时出错: {str(e)}")
+            return False
+
+        # === 步骤8: 补全分类信息 ===
+        try:
+            for category in classified_files["categories"]:
+                if os.path.exists(category["absolute_path"]):
+                    stat = os.stat(category["absolute_path"])
+                    category["created_time"] = datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
+                    category["size"] = sum(
+                        os.path.getsize(os.path.join(category["absolute_path"], f))
+                        for f in os.listdir(category["absolute_path"])
+                        if os.path.isfile(os.path.join(category["absolute_path"], f))
+                    )
+        except Exception as e:
+            print(f"补全分类信息时出错: {str(e)}")
+            return False
+
+        # === 步骤9: 打包初始文件 ===        
+        try:
+            pack_init_files(classified_files)
+        except Exception as e: 
+            print(f"打包初始文件时出错: {str(e)}")
+            return False
+
+        # === 步骤10: 返回成功 ===
+        return True
+
+    except Exception as e:
+        print(f"处理失败: {str(e)}")
+        return False
+    
+
