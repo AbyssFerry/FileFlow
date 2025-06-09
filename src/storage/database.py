@@ -24,9 +24,9 @@ def fileAdd(file_data: dict):
         try:
             cursor.execute(sql, values)
             conn.commit()
-            print("[添加成功] 文件信息如下：")
-            for k, v in file_data.items():
-                print(f"  {k}: {v}")
+            # print("[添加成功] 文件信息如下：")
+            # for k, v in file_data.items():
+            #     print(f"  {k}: {v}")
         except sqlite3.IntegrityError as e:
             print(f"[添加失败] 文件路径已存在：{file_data['absolute_path']}")
             print(f"错误信息: {e}")
@@ -118,9 +118,9 @@ def folderAdd(folder_data: dict):
         try:
             cursor.execute(sql, values)
             conn.commit()
-            print("[添加成功] 目录信息如下：")
-            for k, v in folder_data.items():
-                print(f"  {k}: {v}")
+            # print("[添加成功] 目录信息如下：")
+            # for k, v in folder_data.items():
+            #     print(f"  {k}: {v}")
         except sqlite3.IntegrityError as e:
             print(f"[添加失败] 目录路径已存在：{folder_data['absolute_path']}")
             print(f"错误信息: {e}")

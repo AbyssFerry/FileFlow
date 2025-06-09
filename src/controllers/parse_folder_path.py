@@ -36,8 +36,21 @@ def parse_folder_path(directory: str) -> bool:
         directory = directory.replace('\\', '/')
         
         # === 步骤1: 读取目录并提取文件信息 ===
-        file_info_list = []
+        print(f"开始步骤1: 读取目录 {directory} 中的文件...")
+        
+        # 预先统计符合条件的文件总数
+        total_files = 0
         supported_extensions = {'.txt', '.pdf', '.xlsx', '.xls', '.docx', '.doc'}
+        for root, _, filenames in os.walk(directory):
+            for filename in filenames:
+                _, ext = os.path.splitext(filename)
+                if ext.lower() in supported_extensions:
+                    total_files += 1
+        
+        print(f"共发现 {total_files} 个支持的文件，开始处理...")
+        
+        file_info_list = []
+        current_file = 0
         
         for root, _, filenames in os.walk(directory):
             for filename in filenames:
@@ -51,6 +64,9 @@ def parse_folder_path(directory: str) -> bool:
                 # 跳过不支持的文件类型
                 if ext not in supported_extensions:
                     continue
+                
+                current_file += 1
+                print(f"[{current_file}/{total_files}] 处理文件: {filename}")
                 
                 file_info = {
                     "name": name,
@@ -96,27 +112,38 @@ def parse_folder_path(directory: str) -> bool:
                     print(f"读取文件 {file_path} 内容时出错: {str(e)}")
 
                 file_info_list.append(file_info)
+                
+        print(f"步骤1完成: 共处理了 {current_file} 个文件")
 
         # === 步骤2-3: 调用AI总结每个文件 ===
+        print("\n开始步骤2-3: 调用AI总结每个文件...")
         classifier = FileClassifier()
         summarized_files = []
         
-        for file_info in file_info_list:
+        total_ai_files = len(file_info_list)
+        print(f"需要AI总结的文件总数: {total_ai_files}")
+        
+        for i, file_info in enumerate(file_info_list):
             try:
+                print(f"[{i+1}/{total_ai_files}] 正在处理: {file_info['name']}{file_info['extension']}")
+                
                 if file_info["content"].startswith(("<读取错误:", "<空文件>")):
-                    print(f"跳过无效文件: {file_info['name']} - {file_info['content']}")
+                    print(f"[{i+1}/{total_ai_files}] 跳过无效文件: {file_info['name']} - {file_info['content']}")
                     continue
 
                 summarized_file = classifier.summary_file(file_info)
                 if not summarized_file.get("ai_description") or not summarized_file.get("short_content"):
-                    print(f"文件 {file_info['name']} 总结失败，结果不完整")
+                    print(f"[{i+1}/{total_ai_files}] 文件 {file_info['name']} 总结失败，结果不完整")
                     continue
                     
                 summarized_files.append(summarized_file)
+                print(f"[{i+1}/{total_ai_files}] 文件 {file_info['name']} 总结完成")
                 
             except Exception as e:
-                print(f"总结文件 {file_info['name']} 时出错: {str(e)}")
+                print(f"[{i+1}/{total_ai_files}] 总结文件 {file_info['name']} 时出错: {str(e)}")
                 continue
+                
+        print(f"步骤2-3完成: 成功总结了 {len(summarized_files)}/{total_ai_files} 个文件")
 
         if not summarized_files:
             print("警告: 没有成功总结任何文件")
