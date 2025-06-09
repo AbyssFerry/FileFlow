@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 from organize_files import organize_files
 from pack_init_files import pack_init_files
+from parser_file import read_doc_file
 
 # 标准化项目根路径为SQL风格
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
@@ -22,7 +23,7 @@ def parse_folder_path(directory: str) -> bool:
     """
     完整的文件处理流程（严格按10个步骤实现）
     所有路径存储使用SQL风格的正斜杠(/)
-    只处理 txt, pdf, xlsx, xls, docx 文件
+    只处理 txt, pdf, xlsx, xls, docx, doc 文件
     
     参数:
         directory: 要处理的目录路径（自动转为SQL风格）
@@ -36,7 +37,7 @@ def parse_folder_path(directory: str) -> bool:
         
         # === 步骤1: 读取目录并提取文件信息 ===
         file_info_list = []
-        supported_extensions = {'.txt', '.pdf', '.xlsx', '.xls', '.docx'}
+        supported_extensions = {'.txt', '.pdf', '.xlsx', '.xls', '.docx', '.doc'}
         
         for root, _, filenames in os.walk(directory):
             for filename in filenames:
@@ -84,6 +85,8 @@ def parse_folder_path(directory: str) -> bool:
                         file_info["content"] = "\n".join(
                             p.text for p in doc.paragraphs if p.text.strip()
                         )
+                    elif ext == '.doc':
+                        file_info["content"] = read_doc_file(file_path)
                     
                     if not file_info["content"].strip():
                         file_info["content"] = "<空文件>"
