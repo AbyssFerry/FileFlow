@@ -16,6 +16,7 @@ sys.path.append(project_root)
 
 from src.storage.database import folderShow
 from src.controllers_for_ai.ai_processing import FileClassifier
+import json
 
 logging.getLogger("pdfplumber").setLevel(logging.ERROR)
 
@@ -32,7 +33,7 @@ def scan_directory(directory):
     return total_files, supported_extensions
 
 def read_file_content(file_path, ext, max_length=1000):
-    """读取不同类型文件的内容，并限制最大长度"""
+    """读取不同类型文件的内容，去除无效字符后限制最大长度"""
     try:
         content = ""
         if ext == '.txt':
@@ -59,7 +60,12 @@ def read_file_content(file_path, ext, max_length=1000):
         elif ext == '.doc':
             content = read_doc_file(file_path)
         
-        # 限制内容长度
+        # 去除无效字符（如空白符、不可见字符等）
+        if content:
+            # 去除所有空白字符（空格、制表符、换行等）和不可见字符
+            content = ''.join(c for c in content if not c.isspace() and c.isprintable())
+        
+        # 截取最大长度
         if len(content) > max_length:
             content = content[:max_length] + "\n...[后面内容省略]"
         return content
@@ -148,7 +154,16 @@ def classify_and_standardize(summarized_files, classifier):
     """使用AI分类文件并标准化路径"""
     try:
         classified_files = classifier.classify_files(summarized_files)
-        
+
+        # 输出 summarized_files 到文件@@@@
+        with open("summarized_files.json", "w", encoding="utf-8") as f:
+            json.dump(summarized_files, f, ensure_ascii=False, indent=2)
+
+        # 输出 classified_files 到文件@@@@
+        with open("classified_files.json", "w", encoding="utf-8") as f:
+            json.dump(classified_files, f, ensure_ascii=False, indent=2)
+
+
         # 标准化分类结果中的路径
         for file_info in classified_files["files"]:
             file_info["absolute_path"] = file_info["absolute_path"].replace('\\', '/')
