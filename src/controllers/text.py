@@ -8,7 +8,7 @@ from src.storage.database import reset_database, fileShow, folderShow
 sys.stderr = open(os.devnull, 'w')
 
 large_data = r"D:\vs code\python\FileFlow\testdoc\large_test"
-small_data = r"DD:\vs code\python\FileFlow\testdoc\small_test"
+small_data = r"D:\vs code\python\FileFlow\testdoc\small_test"
 
 
 if __name__ == "__main__":
