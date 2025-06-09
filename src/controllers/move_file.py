@@ -1,44 +1,30 @@
 import os
 import shutil
-from typing import Dict
 
-class FileMover:
-    """文件移动模块"""
+def move_file(fileNewPath):
+    # 标准化输入路径为SQL风格
+    absolute_path = fileNewPath["absolute_path"].replace('\\', '/')
+    new_absolute_path = fileNewPath["new_absolute_path"].replace('\\', '/')
+    reason_for_move = fileNewPath["reason_for_move"]
+    name = fileNewPath["name"]
     
-    @staticmethod
-    def move_file(file_info: Dict[str, str]) -> bool:
-        """
-        核心移动功能
+    # 创建目录结构（自动处理路径分隔符）
+    os.makedirs(os.path.dirname(new_absolute_path), exist_ok=True)
+    
+    try:
+        # 移动文件（Python的shutil.move自动处理不同OS的路径分隔符）
+        shutil.move(absolute_path, new_absolute_path)
         
-        参数:
-            file_info: 必须包含路径字段:
-                {
-                    "文件新路径": "/target/path/file.txt",  # 必须
-                    "文件旧路径": "/source/path/file.txt"   # 必须
-                }
-        
-        返回:
-            bool: 移动是否成功
-        """
-        try:
-            # 验证必要字段
-            if not all(key in file_info for key in ["文件新路径", "文件旧路径"]):
-                raise ValueError("缺少必要路径参数")
-            
-            src = file_info["文件旧路径"]
-            dst = file_info["文件新路径"]
-            
-            # 检查源文件存在性
-            if not os.path.exists(src):
-                raise FileNotFoundError(f"源文件不存在: {src}")
-            
-            # 创建目标目录
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            
-            # 执行移动
-            shutil.move(src, dst)
-            return True
-            
-        except Exception as e:
-            print(f"[文件移动失败] 错误: {type(e).__name__} - {str(e)}")
-            return False
+        # 返回标准化后的路径
+        newPath_and_reason = {
+            "name": name,
+            "new_absolute_path": new_absolute_path,  # 确保返回统一格式
+            "reason_for_move": reason_for_move
+        }
+        return newPath_and_reason
+    
+    except Exception as e:
+        # 错误处理（包含原始路径信息用于调试）
+        raise RuntimeError(
+            f"Failed to move file from {absolute_path} to {new_absolute_path}. Error: {str(e)}"
+        )

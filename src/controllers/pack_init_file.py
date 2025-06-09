@@ -1,29 +1,42 @@
-from typing import Dict, Any
-import sqlite3
+import os
+import sys
 
-def merge_file_info(info1, info2):
-    """
-    合并两个文件信息字典并去除重复字段
-    参数:
-        info1: 第一个文件信息字典
-        info2: 第二个文件信息字典
-    返回:
-        合并并去重后的新字典
-    """
-    merged_info = {}
-    
-    # 合并第一个字典
-    for key, value in info1.items():
-        if key not in merged_info:  # 如果键不存在则添加
-            merged_info[key] = value
-    
-    # 合并第二个字典，跳过已存在的键
-    for key, value in info2.items():
-        if key not in merged_info:  # 只添加不重复的键
-            merged_info[key] = value
-        # 特殊处理created_time这种完全重复的字段
-        elif key == "created_time" and value == info1.get(key):
-            continue  # 完全相同的created_time则跳过
-    
-    return merged_info
+# 获取项目根路径并统一使用正斜杠
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
+sys.path.append(project_root)
 
+from src.storage.database import fileAdd
+
+def pack_init_file(fileNewPath):
+    # 标准化路径为SQL风格(正斜杠)
+    new_absolute_path = fileNewPath["new_absolute_path"].replace('\\', '/')
+    
+    # 转换字典结构（确保路径统一格式）
+    packed_file = {
+        "name": fileNewPath["name"],
+        "absolute_path": new_absolute_path,  # 使用标准化后的路径
+        "extension": fileNewPath["extension"],
+        "created_time": fileNewPath["created_time"],
+        "size": fileNewPath["size"],
+        "ai_description": fileNewPath["ai_description"],
+        "content": fileNewPath["content"],
+        "short_content": fileNewPath["short_content"]
+    }
+    
+    try:
+        # 调用数据库的fileAdd方法
+        fileAdd(packed_file)
+        """print("-"*20)   # @@@@@
+        print("模块2")
+        print(packed_file)  # @@@@@
+        print("-"*20)   # @@@@@"""
+        return {
+            "status": "success",
+            "message": f"文件已成功添加到数据库: {new_absolute_path}"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"无法添加文件到数据库: {str(e)}",
+            "file_path": new_absolute_path  # 返回标准化路径用于调试
+        }
