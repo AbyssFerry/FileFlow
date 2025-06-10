@@ -181,6 +181,10 @@ def classify_and_standardize(summarized_files, classifier):
             file_info["absolute_path"] = f"{path}/{file_info['absolute_path']}".replace('//', '/')
             file_info["new_absolute_path"] = f"{path}/{file_info['new_absolute_path']}".replace('//', '/')
 
+        # 给 classified_files["categories"] 的路径加上前面路径 path
+        for categories_info in classified_files["categories"]:
+            categories_info["absolute_path"] = f"{path}/{categories_info['absolute_path']}".replace('//', '/')
+
         # 输出 summarized_files 到文件@@@@
         with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
             json.dump(summarized_files, f, ensure_ascii=False, indent=2)
