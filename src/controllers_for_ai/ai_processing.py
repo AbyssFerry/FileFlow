@@ -17,7 +17,11 @@ class FileClassifier:
     """智能文件归类与检索助手"""
 
     def __init__(self):
-        self.llm = ChatDeepSeek(model="deepseek-chat")
+        # 修改初始化，将最大输出令牌数设置为8k
+        self.llm = ChatDeepSeek(
+            model="deepseek-chat",
+            max_tokens=8192  # 将输出限制设为8k而不是默认的4k
+        )
 
     def _invoke_chain(self, prompt: str) -> str:
         """调用大模型链，返回字符串结果"""
