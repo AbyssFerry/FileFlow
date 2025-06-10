@@ -13,6 +13,8 @@ middle_data = r"D:\vs code\python\FileFlow\testdoc\middle_test"
 small_data = r"D:\vs code\python\FileFlow\testdoc\small_test"
 tiny_data = r"D:\vs code\python\FileFlow\testdoc\tiny_test"
 
+API_KEY = "YOUR_API_KEY" # 有环境变量API可以为空
+
 if __name__ == "__main__":
     reset_database()
     print(fileShow(), folderShow())
@@ -22,7 +24,7 @@ if __name__ == "__main__":
     # 1
     print("====第一步：解析大数据目录====")
     step1_start = time.time()
-    flag = parse_folder_path(middle_data)
+    flag = parse_folder_path(middle_data, API_KEY)
     step1_end = time.time()
     if flag == 1:
         print("AC")
@@ -31,13 +33,13 @@ if __name__ == "__main__":
     # 2
     print("====第二步：归类文件====")
     step2_start = time.time()
-    pdf_newPath_and_reason = parser_file(r"D:\vs code\python\FileFlow\testdoc\addDoc\计算机与网络空间安全学院2023级考勤实施细则.pdf")
+    pdf_newPath_and_reason = parser_file(r"D:\vs code\python\FileFlow\testdoc\addDoc\计算机与网络空间安全学院2023级考勤实施细则.pdf", API_KEY)
     print(pdf_newPath_and_reason)
 
-    doc_newPath_and_reason = parser_file(r"D:\vs code\python\FileFlow\testdoc\addDoc\附件4：福建师范大学考场规则.doc")
+    doc_newPath_and_reason = parser_file(r"D:\vs code\python\FileFlow\testdoc\addDoc\附件4：福建师范大学考场规则.doc", API_KEY)
     print(doc_newPath_and_reason)
-    
-    excel_newPath_and_reason = parser_file(r"D:\vs code\python\FileFlow\testdoc\addDoc\2024-2025学年第一学期通识教育必修课补考安排表.xlsx")
+
+    excel_newPath_and_reason = parser_file(r"D:\vs code\python\FileFlow\testdoc\addDoc\2024-2025学年第一学期通识教育必修课补考安排表.xlsx", API_KEY)
     print(excel_newPath_and_reason)
     step2_end = time.time()
     print(f"第二步耗时: {step2_end - step2_start:.2f} 秒")
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     # 3
     print("====第三步：搜索====")
     step3_start = time.time()
-    files = pack_search("关于宿舍的文件")
+    files = pack_search("关于宿舍的文件", API_KEY)
     print(files)
     step3_end = time.time()
     print(f"第三步耗时: {step3_end - step3_start:.2f} 秒")

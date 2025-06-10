@@ -45,7 +45,7 @@ def read_doc_file(file_path):
     except Exception as e:
         return f"<读取错误: {str(e)}>"
 
-def parser_file(file_path):
+def parser_file(file_path, API_KEY: str = ""):
     """
     处理文件并返回移动后的新路径和原因
     所有路径存储使用SQL风格的正斜杠(/)
@@ -116,7 +116,7 @@ def parser_file(file_path):
         raise RuntimeError(f"读取文件 {file_path} 内容时出错: {str(e)}")
 
     # 2. 调用AI总结文件
-    classifier = FileClassifier()
+    classifier = FileClassifier(API_KEY)
     try:
         summarized_file = classifier.summary_file(file_info)
         
