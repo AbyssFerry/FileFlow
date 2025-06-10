@@ -161,15 +161,33 @@ def process_files_with_ai(file_info_list, classifier):
 def classify_and_standardize(summarized_files, classifier):
     """使用AI分类文件并标准化路径"""
     try:
+        # 只保留文件名
+        path = ''
+        for file_info in summarized_files:
+            parts = file_info["absolute_path"].split('/')
+            file_info["absolute_path"] = parts[-1]
+            if not path and len(parts) > 1:
+                path = '/'.join(parts[:-1])  # 获取上级目录路径
+        
+        # 测试@@@
+        # print(path)
+
+
+        # 调用AI分类文件
         classified_files = classifier.classify_files(summarized_files)
 
+        # 给 classified_files["files"] 的路径加上前面路径 path
+        for file_info in classified_files["files"]:
+            file_info["absolute_path"] = f"{path}/{file_info['absolute_path']}".replace('//', '/')
+            file_info["new_absolute_path"] = f"{path}/{file_info['new_absolute_path']}".replace('//', '/')
+
         # 输出 summarized_files 到文件@@@@
-        # with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
-        #     json.dump(summarized_files, f, ensure_ascii=False, indent=2)
+        with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
+            json.dump(summarized_files, f, ensure_ascii=False, indent=2)
 
         # 输出 classified_files 到文件@@@@
-        # with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
-        #     json.dump(classified_files, f, ensure_ascii=False, indent=2)
+        with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
+            json.dump(classified_files, f, ensure_ascii=False, indent=2)
 
 
         # 标准化分类结果中的路径

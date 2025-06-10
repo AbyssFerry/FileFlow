@@ -59,7 +59,7 @@ class FileClassifier:
             "你是一个智能文件归类助手。请根据每个文件的内容和AI描述，将它们合理归入二到三级目录，并输出文件列表和目录列表：\n"
             "1. 文件列表，每个文件包含：name|@|@|absolute_path|@|@|new_absolute_path。\n"
             "2. 目录列表，每个目录包含：name|@|@|absolute_path|@|@|ai_description。\n"
-            "注意：new_absolute_path为文件归类后的新路径，目录需体现二到三级结构。\n"
+            "注意：new_absolute_path为文件归类后的新路径，且必须以/开头，目录需体现二到三级结构。\n"
             "目录名只取最后一级目录名。\n"
             "文件数据如下：\n"
         )
@@ -77,6 +77,7 @@ class FileClassifier:
             "文件列表和目录列表之间用==@==分隔。\n"
             "目录列表的每个目录都用换行符分隔\n"
             "每个目录的每个属性都用|@|@|分隔\n"
+            "所有new_absolute_path必须以/开头。\n"
         )
 
         # 将prompt写入文件以便调试 @@@@
