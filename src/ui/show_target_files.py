@@ -1,7 +1,7 @@
 # show_target_files.py
 
 from PyQt5.QtWidgets import (
-    QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QPushButton, QMessageBox
+    QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QPushButton, QMessageBox, QHeaderView
 )
 from PyQt5.QtCore import Qt
 import os
@@ -12,36 +12,52 @@ class ShowTargetFiles(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("目标文件列表")
-        self.resize(700, 350)
+        self.resize(800, 400)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
 
-        # 表格：文件路径，名字，类型，大小，描述
+        # 创建表格
         self.table = QTableWidget()
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(
             ["文件路径", "文件名字", "类型", "大小(字节)", "描述"]
         )
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)  # 禁止编辑
-        self.table.setSelectionBehavior(QTableWidget.SelectRows)  # 选整行
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.cellDoubleClicked.connect(self.open_file)
+
+        # 表头样式
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # 第一列拉伸
+        for i in range(1, 5):
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+
+        self.table.setStyleSheet("""
+            QTableWidget::item { padding: 6px; }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                font-weight: bold;
+                padding: 4px;
+            }
+        """)
 
         layout.addWidget(self.table)
 
         # 关闭按钮
         btn_close = QPushButton("关闭")
+        btn_close.setFixedHeight(32)
         btn_close.clicked.connect(self.close)
-        layout.addWidget(btn_close)
+        layout.addWidget(btn_close, alignment=Qt.AlignRight)
 
         self.setLayout(layout)
-
         self.load_data()
 
     def load_data(self):
-        # 开发阶段固定数据
+        # 模拟数据
         files = [
             {
                 "file_path": "/path/to/file1.txt",
@@ -73,8 +89,6 @@ class ShowTargetFiles(QWidget):
             self.table.setItem(row, 2, QTableWidgetItem(f["file_type"]))
             self.table.setItem(row, 3, QTableWidgetItem(str(f["file_size"])))
             self.table.setItem(row, 4, QTableWidgetItem(f["short_description"]))
-
-        self.table.resizeColumnsToContents()
 
     def open_file(self, row, _column):
         file_path = self.table.item(row, 0).text()
