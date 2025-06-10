@@ -64,6 +64,7 @@ class GetUserChoice(QWidget):
     def open_init_folder(self):
         if not self.API_KEY:
             print("API Key未设置")
+            QMessageBox.warning(self, "警告", "API Key未设置")
             return
         self.init_window = GetInitFolder(API_KEY=self.API_KEY)
         self.init_window.folder_dropped.connect(self.handle_folder_dropped)
@@ -77,8 +78,9 @@ class GetUserChoice(QWidget):
     def open_add_file(self):
         if not self.API_KEY:
             print("API Key未设置")
+            QMessageBox.warning(self, "警告", "API Key未设置")
             return
-        self.add_window = GetAddFile()
+        self.add_window = GetAddFile(API_KEY=self.API_KEY)  # 修改这里，传入API_KEY
         self.add_window.file_dropped.connect(self.handle_file_dropped)
         self.add_window.show()
 
@@ -90,8 +92,9 @@ class GetUserChoice(QWidget):
     def open_search(self):
         if not self.API_KEY:
             print("API Key未设置")
+            QMessageBox.warning(self, "警告", "API Key未设置")
             return
-        self.search_window = GetUserSearch()
+        self.search_window = GetUserSearch(API_KEY=self.API_KEY)  # 修改这里，传入API_KEY
         self.search_window.show()
 
     def closeEvent(self, event):

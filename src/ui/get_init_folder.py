@@ -39,6 +39,7 @@ class GetInitFolder(QWidget):
             folder_path = urls[0].toLocalFile()
             if os.path.isdir(folder_path):
                 self.label.setText(f"已选择文件夹：\n{folder_path}")
+                
                 flag = parse_folder_path(folder_path, self.API_KEY)
                 print(f"[终端输出] 拖入的文件夹路径为：{folder_path}")
                 print(f"使用的API Key为：{self.API_KEY}")  # 添加API_KEY输出
