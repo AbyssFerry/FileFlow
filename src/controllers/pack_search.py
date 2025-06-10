@@ -1,7 +1,7 @@
 import sys
 import os
 from typing import List, Dict, Any
-from get_search_target_files import get_search_target_files
+from src.controllers.get_search_target_files import get_search_target_files
 
 # 标准化项目根路径为SQL风格
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
