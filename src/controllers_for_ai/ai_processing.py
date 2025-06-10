@@ -4,6 +4,11 @@ from typing import List, Dict, Any, Tuple
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.output_parsers import StrOutputParser
 
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
+os.environ["LANGSMITH_API_KEY"] = "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"
+os.environ["LANGSMITH_PROJECT"] = "test_fileflow"
+
 load_dotenv()
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 parser = StrOutputParser()
@@ -52,8 +57,8 @@ class FileClassifier:
         """批量归类文件，返回归类后的文件和目录列表"""
         prompt = (
             "你是一个智能文件归类助手。请根据每个文件的内容和AI描述，将它们合理归入二到三级目录，并输出文件列表和目录列表：\n"
-            "1. 文件列表，每个文件包含：name|||absolute_path|||new_absolute_path。\n"
-            "2. 目录列表，每个目录包含：name|||absolute_path|||ai_description。\n"
+            "1. 文件列表，每个文件包含：name|@|@|absolute_path|@|@|new_absolute_path。\n"
+            "2. 目录列表，每个目录包含：name|@|@|absolute_path|@|@|ai_description。\n"
             "注意：new_absolute_path为文件归类后的新路径，目录需体现二到三级结构。\n"
             "目录名只取最后一级目录名。\n"
             "文件数据如下：\n"
@@ -68,16 +73,22 @@ class FileClassifier:
             "请严格按照如下格式输出：\n"
             "不要输出“文件列表”和“目录列表”这八个字符\n"
             "文件列表的每个文件都用换行符分隔\n"
-            "每个文件的每个属性都用|||分隔\n"
-            "文件列表和目录列表之间用---分隔。\n"
+            "每个文件的每个属性都用|@|@|分隔\n"
+            "文件列表和目录列表之间用==@==分隔。\n"
             "目录列表的每个目录都用换行符分隔\n"
-            "每个目录的每个属性都用|||分隔\n"
+            "每个目录的每个属性都用|@|@|分隔\n"
         )
+
+        # 将prompt写入文件以便调试 @@@@
+        # with open(r"D:\vs code\python\FileFlow\testdoc", "w", encoding="utf-8") as f:
+        #     f.write(prompt)
+
+
         response = self._invoke_chain(prompt)
         try:
-            files_str, categories_str = response.strip().split('---', 1)
-            files_list_raw = [file.split('|||') for file in files_str.strip().split('\n') if file.strip()]
-            categories_list_raw = [cat.split('|||') for cat in categories_str.strip().split('\n') if cat.strip()]
+            files_str, categories_str = response.strip().split('==@==', 1)
+            files_list_raw = [file.split('|@|@|') for file in files_str.strip().split('\n') if file.strip()]
+            categories_list_raw = [cat.split('|@|@|') for cat in categories_str.strip().split('\n') if cat.strip()]
             files_list = []
             for file_item in files_list_raw:
                 name, absolute_path, new_absolute_path = file_item
@@ -95,7 +106,7 @@ class FileClassifier:
                     "reason_for_move": origin.get("reason_for_move", "")
                 })
             categories_list = []
-            for cat_item in categories_list_raw:
+            for cat_item in categories_list_raw:             
                 name, absolute_path, ai_description = cat_item
                 categories_list.append({
                     "name": name,
@@ -117,7 +128,7 @@ class FileClassifier:
         prompt = (
             "你是一个文件归类助手。请根据文件的内容、AI描述和所有目录的信息，判断该文件最适合归属哪个目录\n"
             "请输出文件的新绝对路径和归类原因。\n"
-            "请严格按照如下格式输出：name|||new_absolute_path|||reason_for_move\n"
+            "请严格按照如下格式输出：name|@|@|new_absolute_path|@|@|reason_for_move\n"
             "文件信息如下：\n"
             f"文件名: {file['name']}\n"
             f"AI描述: {file['ai_description']}\n"
@@ -131,7 +142,7 @@ class FileClassifier:
             )
         response = self._invoke_chain(prompt)
         try:
-            name, new_absolute_path, reason_for_move = [x.strip() for x in response.strip().split('|||')]
+            name, new_absolute_path, reason_for_move = [x.strip() for x in response.strip().split('|@|@|')]
             return {
                 "name": name,
                 "absolute_path": file.get("absolute_path", ""),
@@ -152,7 +163,7 @@ class FileClassifier:
         """根据查询检索最匹配的文件"""
         prompt = (
             "你是一个文件检索助手。请根据用户的查询，从所有文件中找出最符合查询的文件。\n"
-            "请严格按照如下格式输出所有匹配的文件，每个文件一行：name|||absolute_path\n"
+            "请严格按照如下格式输出所有匹配的文件，每个文件一行：name|@|@|absolute_path\n"
             "不要输出其他内容。\n\n"
             f"用户查询: {query}\n\n"
             "文件信息如下：\n"
@@ -169,7 +180,7 @@ class FileClassifier:
             for line in response.strip().split('\n'):
                 if not line.strip():
                     continue
-                parts = line.strip().split('|||')
+                parts = line.strip().split('|@|@|')
                 if len(parts) == 2:
                     name, absolute_path = parts
                     result.append({

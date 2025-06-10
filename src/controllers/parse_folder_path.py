@@ -120,37 +120,41 @@ def collect_file_info(directory, total_files, supported_extensions):
             file_info_list.append(file_info)
 
     # 测试使用@@@@
-    with open(r"D:\vs code\python\FileFlow\testdoc\file_info_list.json", "w", encoding="utf-8") as f:
-        json.dump(file_info_list, f, ensure_ascii=False, indent=2)
+    # with open(r"D:\vs code\python\FileFlow\testdoc\file_info_list.json", "w", encoding="utf-8") as f:
+    #     json.dump(file_info_list, f, ensure_ascii=False, indent=2)
 
     return file_info_list, current_file
 
+import concurrent.futures
+
 def process_files_with_ai(file_info_list, classifier):
-    """使用AI处理和总结文件"""
+    """使用AI并发处理和总结文件"""
     summarized_files = []
     total_ai_files = len(file_info_list)
     print(f"需要AI总结的文件总数: {total_ai_files}")
-    
-    for i, file_info in enumerate(file_info_list):
+
+    def summarize(file_info_tuple):
+        i, file_info = file_info_tuple
         try:
             print(f"[{i+1}/{total_ai_files}] 正在处理: {file_info['name']}{file_info['extension']}")
-            
             if file_info["content"].startswith(("<读取错误:", "<空文件>")):
                 print(f"[{i+1}/{total_ai_files}] 跳过无效文件: {file_info['name']} - {file_info['content']}")
-                continue
-
+                return None
             summarized_file = classifier.summary_file(file_info)
             if not summarized_file.get("ai_description") or not summarized_file.get("short_content"):
                 print(f"[{i+1}/{total_ai_files}] 文件 {file_info['name']} 总结失败，结果不完整。")
-                continue
-                
-            summarized_files.append(summarized_file)
+                return None
             print(f"[{i+1}/{total_ai_files}] 文件 {file_info['name']} 总结完成")
-            
+            return summarized_file
         except Exception as e:
             print(f"[{i+1}/{total_ai_files}] 总结文件 {file_info['name']} 时出错: {str(e)}")
-            continue
-            
+            return None
+    import os
+    max_threads = min(30, (os.cpu_count() or 1) * 2)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        results = list(executor.map(summarize, enumerate(file_info_list)))
+
+    summarized_files = [f for f in results if f is not None]
     print(f"步骤2-3完成: 成功总结了 {len(summarized_files)}/{total_ai_files} 个文件")
     return summarized_files
 
@@ -160,12 +164,12 @@ def classify_and_standardize(summarized_files, classifier):
         classified_files = classifier.classify_files(summarized_files)
 
         # 输出 summarized_files 到文件@@@@
-        with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
-            json.dump(summarized_files, f, ensure_ascii=False, indent=2)
+        # with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
+        #     json.dump(summarized_files, f, ensure_ascii=False, indent=2)
 
         # 输出 classified_files 到文件@@@@
-        with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
-            json.dump(classified_files, f, ensure_ascii=False, indent=2)
+        # with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
+        #     json.dump(classified_files, f, ensure_ascii=False, indent=2)
 
 
         # 标准化分类结果中的路径
