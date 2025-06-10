@@ -236,7 +236,7 @@ def complete_category_info(classified_files):
         print(f"补全分类信息时出错: {str(e)}")
         return False
 
-def parse_folder_path(directory: str) -> bool:
+def parse_folder_path(directory: str, API_KEY: str = "") -> bool:
     """
     完整的文件处理流程（严格按10个步骤实现）
     所有路径存储使用SQL风格的正斜杠(/)
@@ -269,7 +269,7 @@ def parse_folder_path(directory: str) -> bool:
 
         # === 步骤2-3: 调用AI总结每个文件 ===
         print("\n开始步骤2-3: 调用AI总结每个文件...")
-        classifier = FileClassifier()
+        classifier = FileClassifier(API_KEY)
         summarized_files = process_files_with_ai(file_info_list, classifier)
 
         if not summarized_files:

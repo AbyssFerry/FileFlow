@@ -4,10 +4,12 @@ from typing import List, Dict, Any, Tuple
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.output_parsers import StrOutputParser
 
-os.environ["LANGSMITH_TRACING"] = "true"
-os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGSMITH_API_KEY"] = "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"
-os.environ["LANGSMITH_PROJECT"] = "test_fileflow"
+# os.environ["LANGSMITH_TRACING"] = "true"
+# os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
+# os.environ["LANGSMITH_API_KEY"] = "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"
+# os.environ["LANGSMITH_PROJECT"] = "test_fileflow"
+
+
 
 load_dotenv()
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
@@ -16,13 +18,27 @@ parser = StrOutputParser()
 class FileClassifier:
     """智能文件归类与检索助手"""
 
-    def __init__(self):
+    def __init__(self, api_key=None):
         # 修改初始化，将最大输出令牌数设置为8k
+        # 允许用户传入自己的API密钥
+
+
+        self.api_key = api_key or DEEPSEEK_API_KEY
+        if not self.api_key:
+            raise ValueError("必须提供 DEEPSEEK_API_KEY（通过环境变量或 api_key 参数）")
+        
+        if api_key is not None:
+            print("使用自定义传入的API密钥")
+        else:
+            print("使用环境变量中的 DEEPSEEK_API_KEY")
+
         self.llm = ChatDeepSeek(
             model="deepseek-chat",
-            max_tokens=8192  # 将输出限制设为8k而不是默认的4k
+            max_tokens=8192,
+            api_key=self.api_key  # 显式传入 # type: ignore
         )
 
+    
     def _invoke_chain(self, prompt: str) -> str:
         """调用大模型链，返回字符串结果"""
         chain = self.llm | parser
