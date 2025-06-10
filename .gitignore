@@ -1,3 +1,6 @@
 *.pyc
 __pycache__/
 .env
+testdoc
+testdoc copy
+temp.py
