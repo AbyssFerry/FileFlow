@@ -64,7 +64,7 @@ def read_file_content(file_path, ext, max_length=1000):
         if content:
             # 去除所有空白字符（空格、制表符、换行等）和不可见字符
             content = ''.join(c for c in content if not c.isspace() and c.isprintable())
-        
+
         # 截取最大长度
         if len(content) > max_length:
             content = content[:max_length] + "\n...[后面内容省略]"
@@ -112,7 +112,12 @@ def collect_file_info(directory, total_files, supported_extensions):
                 file_info["content"] = f"{filename}"            # 如果读取失败，内容设为文件名
             else:
                 file_info["content"] = content
-                
+            
+            # 检查是否包含读取错误信息，如果有则将内容设为文件名
+            if content.startswith("<读取错误:") and "很抱歉，找不到您的文件" in content:
+                file_info["content"] = f"{filename}"
+
+
             # 如果读取失败，内容设为文件名
             if not file_info["content"]:
                 file_info["content"] = f"{filename}"
@@ -150,7 +155,8 @@ def process_files_with_ai(file_info_list, classifier):
             print(f"[{i+1}/{total_ai_files}] 总结文件 {file_info['name']} 时出错: {str(e)}")
             return None
     import os
-    max_threads = min(30, (os.cpu_count() or 1) * 2)
+    # 限制最大线程数为40，避免过多线程导致系统资源耗尽
+    max_threads = min(40, (os.cpu_count() or 1) * 2)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         results = list(executor.map(summarize, enumerate(file_info_list)))
 
@@ -256,6 +262,10 @@ def parse_folder_path(directory: str) -> bool:
         # 收集文件信息
         file_info_list, processed_files = collect_file_info(directory, total_files, supported_extensions)
         print(f"步骤1完成: 共处理了 {processed_files} 个文件")
+
+        # 输出 file_info_list 到文件 @@@
+        # with open(r"D:\vs code\python\FileFlow\testdoc\file_info_list.json", "w", encoding="utf-8") as f:
+        #     json.dump(file_info_list, f, ensure_ascii=False, indent=2)
 
         # === 步骤2-3: 调用AI总结每个文件 ===
         print("\n开始步骤2-3: 调用AI总结每个文件...")
