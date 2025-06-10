@@ -1,8 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QMessageBox
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 import os
+from multiprocessing import Process, Queue
 from src.ui.show_move_target import ShowMoveTarget
 from src.controllers.parser_file import parser_file
+from src.ui.uiprint import print
+
+def process_file(file_path, api_key, queue):
+    try:
+        result = parser_file(file_path, api_key)
+        queue.put(result)
+    except Exception as e:
+        queue.put({"error": str(e)})
 
 class GetAddFile(QWidget):
     file_dropped = pyqtSignal(str)
@@ -14,7 +23,11 @@ class GetAddFile(QWidget):
         self.setAcceptDrops(True)
         self.resize(600, 350)
         self.init_ui()
-
+        self.process = None
+        self.queue = Queue()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.check_process)
+        
     def init_ui(self):
         layout = QVBoxLayout()
         self.label = QLabel("请将文件拖入此区域")
@@ -29,6 +42,25 @@ class GetAddFile(QWidget):
         layout.addWidget(self.close_btn)
 
         self.setLayout(layout)
+
+    def check_process(self):
+        if not self.queue.empty():
+            result = self.queue.get()
+            self.timer.stop()
+            
+            if isinstance(result, dict) and "error" in result:
+                QMessageBox.critical(self, "错误", f"处理文件时发生错误：{result['error']}")
+                return
+                
+            if not result:
+                QMessageBox.warning(self, "警告", "文件解析失败")
+                return
+                
+            self.move_info_window = ShowMoveTarget(result)
+            self.move_info_window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+            self.move_info_window.show()
+            self.move_info_window.raise_()
+            self.close_btn.setVisible(True)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -45,28 +77,24 @@ class GetAddFile(QWidget):
                 self.label.setText("请拖入一个有效的文件")
                 return
 
-            self.label.setText(f"已选择文件：\n{file_path}")
+            self.label.setText(f"正在处理文件：\n{file_path}\n请稍候...")
             
-            # 验证API Key
             if not self.API_KEY:
                 raise ValueError("API Key未设置")
 
-            # 获取文件解析结果
-            newPath_and_reason = parser_file(file_path, self.API_KEY)
             print(f"[终端输出] 拖入的文件路径为：{file_path}")
             print(f"使用的API Key为：{self.API_KEY}")
             
-            if not newPath_and_reason:
-                raise ValueError("文件解析失败")
-
-            # 将解析结果传递给移动信息窗口
-            self.move_info_window = ShowMoveTarget(newPath_and_reason)
-            self.move_info_window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-            self.move_info_window.show()
-            self.move_info_window.raise_()
+            # 启动新进程处理文件
+            if self.process and self.process.is_alive():
+                self.process.terminate()
+                
+            self.process = Process(target=process_file, 
+                                 args=(file_path, self.API_KEY, self.queue))
+            self.process.start()
+            self.timer.start(100)  # 每100ms检查一次结果
             
             self.file_dropped.emit(file_path)
-            self.close_btn.setVisible(True)
 
         except ValueError as e:
             QMessageBox.warning(self, "警告", str(e))
@@ -79,7 +107,8 @@ class GetAddFile(QWidget):
         self.close_btn.setVisible(visible)
 
     def closeEvent(self, event):
-        # 关闭时同时关闭移动信息窗口
+        if self.process and self.process.is_alive():
+            self.process.terminate()
         if hasattr(self, 'move_info_window'):
             self.move_info_window.close()
         event.accept()

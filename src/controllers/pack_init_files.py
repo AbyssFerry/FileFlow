@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import sqlite3
-
+from src.ui.uiprint import print
 
 # 添加项目根目录到Python路径 (使用Path对象自动处理路径分隔符)
 project_root = Path(__file__).parent.parent.parent

@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
 from PyQt5.QtCore import Qt
+from src.ui.uiprint import print
 
 class ShowMoveTarget(QWidget):
     def __init__(self, move_info=None):

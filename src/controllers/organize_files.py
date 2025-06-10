@@ -1,6 +1,6 @@
 import os
 import shutil
-
+from src.ui.uiprint import print
 def organize_files(files):
     """
     将文件从原路径移动到新路径，使用SQL风格路径格式(正斜杠/)
