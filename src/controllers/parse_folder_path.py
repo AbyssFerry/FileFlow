@@ -186,12 +186,12 @@ def classify_and_standardize(summarized_files, classifier):
             categories_info["absolute_path"] = f"{path}/{categories_info['absolute_path']}".replace('//', '/')
 
         # 输出 summarized_files 到文件@@@@
-        with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
-            json.dump(summarized_files, f, ensure_ascii=False, indent=2)
+        # with open(r"D:\vs code\python\FileFlow\testdoc\summarized_files.json", "w", encoding="utf-8") as f:
+        #     json.dump(summarized_files, f, ensure_ascii=False, indent=2)
 
         # 输出 classified_files 到文件@@@@
-        with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
-            json.dump(classified_files, f, ensure_ascii=False, indent=2)
+        # with open(r"D:\vs code\python\FileFlow\testdoc\classified_files.json", "w", encoding="utf-8") as f:
+        #     json.dump(classified_files, f, ensure_ascii=False, indent=2)
 
 
         # 标准化分类结果中的路径
