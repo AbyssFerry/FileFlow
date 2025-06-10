@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt
 import os
 import subprocess
 import sys
+from src.ui.uiprint import print
 
 class ShowTargetFiles(QWidget):
     def __init__(self, files=None):

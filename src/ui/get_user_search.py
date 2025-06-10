@@ -1,15 +1,27 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
+from multiprocessing import Process, Queue
 from src.ui.show_target_files import ShowTargetFiles
 from src.ui.show_progress_bar import ShowProgressBar
-from PyQt5.QtCore import QTimer
 from src.controllers.pack_search import pack_search
+from src.ui.uiprint import print
+
+def process_search(keyword, api_key, queue):
+    try:
+        result = pack_search(keyword, api_key)
+        queue.put(result)
+    except Exception as e:
+        queue.put({"error": str(e)})
 
 class GetUserSearch(QWidget):
     def __init__(self, API_KEY=None):
         super().__init__()
         self.API_KEY = API_KEY
-        self.search_results = None  # 添加存储搜索结果的变量
+        self.search_results = None
+        self.process = None
+        self.queue = Queue()
+        self.check_timer = QTimer()
+        self.check_timer.timeout.connect(self.check_process)
         self.setWindowTitle("查询文件")
         self.resize(480, 160)  
         self.init_ui()
@@ -42,6 +54,19 @@ class GetUserSearch(QWidget):
 
         self.setLayout(layout)
 
+    def check_process(self):
+        if not self.queue.empty():
+            result = self.queue.get()
+            self.check_timer.stop()
+            
+            if isinstance(result, dict) and "error" in result:
+                QMessageBox.critical(self, "错误", f"搜索时发生错误：{result['error']}")
+                return
+                
+            self.search_results = result
+            self.progress_window.start_progress("查询完成")
+            QTimer.singleShot(600, self.show_results)
+
     def search(self):
         try:
             if not self.API_KEY:
@@ -51,18 +76,21 @@ class GetUserSearch(QWidget):
             if not keyword:
                 raise ValueError("请输入搜索关键词")
 
-            # 保存搜索结果
-            self.search_results = pack_search(keyword, self.API_KEY)
             print(f"用户输入的关键词：{keyword}")
             print(f"使用的API Key：{self.API_KEY}")
 
             # 显示进度条窗口
             self.progress_window = ShowProgressBar(self)
             self.progress_window.show()
-            self.progress_window.start_progress("查询完成")
-
-            # 等待进度条完成后显示结果
-            QTimer.singleShot(600, self.show_results)
+            
+            # 启动搜索进程
+            if self.process and self.process.is_alive():
+                self.process.terminate()
+                
+            self.process = Process(target=process_search, 
+                                 args=(keyword, self.API_KEY, self.queue))
+            self.process.start()
+            self.check_timer.start(100)  # 每100ms检查一次结果
 
         except ValueError as e:
             QMessageBox.warning(self, "警告", str(e))
@@ -70,6 +98,11 @@ class GetUserSearch(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "错误", f"搜索时发生错误：{str(e)}")
             print(f"错误: {str(e)}")
+
+    def closeEvent(self, event):
+        if self.process and self.process.is_alive():
+            self.process.terminate()
+        event.accept()
 
     def show_results(self):
         if not self.search_results:

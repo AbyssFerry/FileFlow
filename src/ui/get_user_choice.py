@@ -6,6 +6,7 @@ from src.ui.get_add_file import GetAddFile
 from src.ui.get_user_search import GetUserSearch
 from src.ui.show_progress_bar import ShowProgressBar
 from src.ui.get_api_key import GetAPIKey
+from src.ui.uiprint import print
 
 class GetUserChoice(QWidget):
     def __init__(self):
