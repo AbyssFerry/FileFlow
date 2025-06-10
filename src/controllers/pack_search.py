@@ -10,7 +10,7 @@ sys.path.append(project_root)
 from src.controllers_for_ai.ai_processing import FileClassifier
 from src.storage.database import fileShow
 
-def pack_search(query: str) -> List[Dict[str, Any]]:
+def pack_search(query: str, API_KEY: str = "") -> List[Dict[str, Any]]:
     """
     根据查询字符串搜索匹配的文件
     所有路径存储使用SQL风格的正斜杠(/)
@@ -42,7 +42,7 @@ def pack_search(query: str) -> List[Dict[str, Any]]:
         print("="*20)
         print(query)
         print("="*20)"""
-        classifier = FileClassifier()  # 实例化
+        classifier = FileClassifier(API_KEY)  # 实例化
         match_files = classifier.get_match_files(query, files)
     except Exception as e:
         raise RuntimeError(f"AI匹配过程出错: {str(e)}")
