@@ -1,7 +1,20 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 import os
 from src.controllers.parse_folder_path import parse_folder_path
+from src.ui.uiprint import print
+
+class ParseFolderThread(QThread):
+    finished = pyqtSignal(bool)
+    
+    def __init__(self, folder_path, api_key):
+        super().__init__()
+        self.folder_path = folder_path
+        self.api_key = api_key
+        
+    def run(self):
+        result = parse_folder_path(self.folder_path, self.api_key)
+        self.finished.emit(result)
 
 class GetInitFolder(QWidget):
     folder_dropped = pyqtSignal(str)
@@ -38,14 +51,21 @@ class GetInitFolder(QWidget):
         if urls:
             folder_path = urls[0].toLocalFile()
             if os.path.isdir(folder_path):
-                self.label.setText(f"已选择文件夹：\n{folder_path}")
-                
-                flag = parse_folder_path(folder_path, self.API_KEY)
+                self.label.setText(f"正在处理文件夹：\n{folder_path}\n请稍候...")
                 print(f"[终端输出] 拖入的文件夹路径为：{folder_path}")
-                print(f"使用的API Key为：{self.API_KEY}")  # 添加API_KEY输出
+                print(f"使用的API Key为：{self.API_KEY}")
+                
+                # 创建并启动工作线程
+                self.parse_thread = ParseFolderThread(folder_path, self.API_KEY)
+                self.parse_thread.finished.connect(self.on_parse_finished)
+                self.parse_thread.start()
+                
                 self.folder_dropped.emit(folder_path)
             else:
                 self.label.setText("请拖入一个有效的文件夹")
+
+    def on_parse_finished(self, result):
+        self.label.setText("处理完成！" if result else "处理失败，请检查控制台输出")
 
     def set_close_buttons_visible(self, visible: bool):
         self.close_btn.setVisible(visible)

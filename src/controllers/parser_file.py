@@ -9,6 +9,8 @@ import pandas as pd
 from docx import Document
 import pdfplumber
 import logging
+from src.ui.uiprint import print
+
 
 # 标准化项目根路径为SQL风格
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
