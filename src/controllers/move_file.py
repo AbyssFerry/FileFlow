@@ -9,7 +9,9 @@ def move_file(fileNewPath):
     name = fileNewPath["name"]
     
     # 创建目录结构（自动处理路径分隔符）
-    os.makedirs(os.path.dirname(new_absolute_path), exist_ok=True)
+    new_dir = os.path.dirname(new_absolute_path)
+    if not os.path.exists(new_dir):
+        os.makedirs(new_dir, exist_ok=True)
     
     try:
         # 移动文件（Python的shutil.move自动处理不同OS的路径分隔符）
