@@ -2,14 +2,14 @@ import sys
 import os
 from typing import List, Dict, Any
 from src.controllers.get_search_target_files import get_search_target_files
-
+from src.ui.uiprint import print
 # 标准化项目根路径为SQL风格
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
 sys.path.append(project_root)
 
 from src.controllers_for_ai.ai_processing import FileClassifier
 from src.storage.database import fileShow
-
+from src.ui.uiprint import print
 def pack_search(query: str, API_KEY: str = "") -> List[Dict[str, Any]]:
     """
     根据查询字符串搜索匹配的文件

@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QLineEdit, QPushButton, QVBoxLayout, QLabel, QMessageBox, QApplication
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
+from src.ui.uiprint import print
 
 class GetAPIKey(QWidget):
     api_submitted = pyqtSignal(str)

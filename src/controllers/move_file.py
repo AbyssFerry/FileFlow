@@ -1,6 +1,6 @@
 import os
 import shutil
-
+from src.ui.uiprint import print
 def move_file(fileNewPath):
     # 标准化输入路径为SQL风格
     absolute_path = fileNewPath["absolute_path"].replace('\\', '/')
