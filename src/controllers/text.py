@@ -8,6 +8,7 @@ from src.storage.database import reset_database, fileShow, folderShow
 sys.stderr = open(os.devnull, 'w')
 
 large_data = r"D:\vs code\python\FileFlow\testdoc\large_test"
+middle_data = r"D:\vs code\python\FileFlow\testdoc\middle_test"
 small_data = r"D:\vs code\python\FileFlow\testdoc\small_test"
 tiny_data = r"D:\vs code\python\FileFlow\testdoc\tiny_test"
 
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     print(fileShow(),folderShow())
     # 1
     print("====第一步：解析大数据目录====")
-    flag = parse_folder_path(small_data)
+    flag = parse_folder_path(middle_data)
     if flag == 1:
         print("AC")
     # 2
