@@ -155,7 +155,8 @@ def process_files_with_ai(file_info_list, classifier):
             print(f"[{i+1}/{total_ai_files}] 总结文件 {file_info['name']} 时出错: {str(e)}")
             return None
     import os
-    max_threads = min(30, (os.cpu_count() or 1) * 2)
+    # 限制最大线程数为40，避免过多线程导致系统资源耗尽
+    max_threads = min(40, (os.cpu_count() or 1) * 2)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         results = list(executor.map(summarize, enumerate(file_info_list)))
 
@@ -263,8 +264,8 @@ def parse_folder_path(directory: str) -> bool:
         print(f"步骤1完成: 共处理了 {processed_files} 个文件")
 
         # 输出 file_info_list 到文件 @@@
-        with open(r"D:\vs code\python\FileFlow\testdoc\file_info_list.json", "w", encoding="utf-8") as f:
-            json.dump(file_info_list, f, ensure_ascii=False, indent=2)
+        # with open(r"D:\vs code\python\FileFlow\testdoc\file_info_list.json", "w", encoding="utf-8") as f:
+        #     json.dump(file_info_list, f, ensure_ascii=False, indent=2)
 
         # === 步骤2-3: 调用AI总结每个文件 ===
         print("\n开始步骤2-3: 调用AI总结每个文件...")
