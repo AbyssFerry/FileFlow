@@ -9,6 +9,7 @@ from datetime import datetime
 from src.controllers.organize_files import organize_files
 from src.controllers.pack_init_files import pack_init_files
 from src.controllers.parser_file import read_doc_file
+from src.ui.uiprint import print
 
 # 标准化项目根路径为SQL风格
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')

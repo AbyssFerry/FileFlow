@@ -1,6 +1,6 @@
 import os
 import sys
-
+from src.ui.uiprint import print
 # 获取项目根路径并统一使用正斜杠
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
 sys.path.append(project_root)
