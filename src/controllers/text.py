@@ -16,7 +16,7 @@ if __name__ == "__main__":
     print(fileShow(),folderShow())
     # 1
 
-    flag = parse_folder_path(small_data)
+    flag = parse_folder_path(tiny_data)
     if flag == 1:
         print("AC")
     # 2
