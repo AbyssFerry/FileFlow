@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout
 from PyQt5.QtCore import Qt
-from show_target_files import ShowTargetFiles
-from show_progress_bar import ShowProgressBar
+from src.ui.show_target_files import ShowTargetFiles
+from src.ui.show_progress_bar import ShowProgressBar
 from PyQt5.QtCore import QTimer
 
 class GetUserSearch(QWidget):

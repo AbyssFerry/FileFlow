@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton
 from PyQt5.QtCore import Qt, pyqtSignal
 import os
-from show_move_target import ShowMoveTarget
+from src.ui.show_move_target import ShowMoveTarget
 
 class GetAddFile(QWidget):
     file_dropped = pyqtSignal(str)
