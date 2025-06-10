@@ -4,12 +4,6 @@ from typing import List, Dict, Any, Tuple
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.output_parsers import StrOutputParser
 
-# os.environ["LANGSMITH_TRACING"] = "true"
-# os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
-# os.environ["LANGSMITH_API_KEY"] = "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"
-# os.environ["LANGSMITH_PROJECT"] = "test_fileflow"
-
-
 
 load_dotenv()
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
