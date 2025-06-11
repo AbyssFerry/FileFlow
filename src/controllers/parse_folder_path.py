@@ -280,7 +280,7 @@ def parse_folder_path(directory: str, API_KEY: str = "") -> bool:
 
         # === 步骤4-5: 调用AI分类文件 ===
         print("\n开始步骤4-5: 调用AI对文件进行智能分类...")
-        print(f"提交 {len(summarized_files)} 个文件到AI进行分类处理")
+        print(f"提交 {len(summarized_files)} 个文件到AI进行分类处理,本功能时间相对较长，请耐心等待...")
         classified_files = classify_and_standardize(summarized_files, classifier)
         if not classified_files:
             print("步骤4-5失败: 无法完成文件分类")
