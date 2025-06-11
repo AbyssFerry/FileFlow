@@ -5,6 +5,7 @@ from langchain_deepseek import ChatDeepSeek
 from langchain_core.output_parsers import StrOutputParser
 from src.ui.uiprint import print
 
+
 load_dotenv()
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 parser = StrOutputParser()
