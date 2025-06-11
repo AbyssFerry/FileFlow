@@ -9,7 +9,7 @@ class GetAPIKey(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("输入API Key")
-        self.resize(400, 150)
+        self.resize(600, 250)  # 增大窗口尺寸
         # 设置为模态窗口并禁用关闭按钮
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
@@ -17,23 +17,40 @@ class GetAPIKey(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(40, 20, 40, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(50, 30, 50, 30)  # 增加边距
+        layout.setSpacing(20)  # 增加间距
 
         # 添加提示标签
         label = QLabel("请输入API Key:")
-        label.setFont(QFont(None, 10))
+        label.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-family: 'Microsoft YaHei', '微软雅黑';
+            }
+        """)
         layout.addWidget(label)
 
         # 添加输入框
         self.api_input = QLineEdit()
-        self.api_input.setFont(QFont(None, 10))
+        self.api_input.setStyleSheet("""
+            QLineEdit {
+                font-size: 16px;
+                padding: 8px;
+                min-height: 40px;
+            }
+        """)
         self.api_input.returnPressed.connect(self.submit_api)
         layout.addWidget(self.api_input)
 
         # 添加确认按钮
         submit_btn = QPushButton("确定")
-        submit_btn.setFont(QFont(None, 10))
+        submit_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                padding: 10px;
+                min-height: 45px;
+            }
+        """)
         submit_btn.clicked.connect(self.submit_api)
         layout.addWidget(submit_btn)
 
