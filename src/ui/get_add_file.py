@@ -6,6 +6,7 @@ from src.ui.show_move_target import ShowMoveTarget
 from src.controllers.parser_file import parser_file
 from src.ui.uiprint import print
 
+
 def process_file(file_path, api_key, queue):
     try:
         result = parser_file(file_path, api_key)
@@ -21,7 +22,7 @@ class GetAddFile(QWidget):
         self.API_KEY = API_KEY
         self.setWindowTitle("拖入文件")
         self.setAcceptDrops(True)
-        self.resize(600, 350)
+        self.resize(800, 600)  # 增大窗口尺寸
         self.init_ui()
         self.process = None
         self.queue = Queue()
@@ -30,13 +31,28 @@ class GetAddFile(QWidget):
         
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(40, 40, 40, 40)  # 增加边距
+        
         self.label = QLabel("请将文件拖入此区域")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet("border: 2px dashed #aaa; font-size: 18px; padding: 20px;")
+        self.label.setStyleSheet("""
+            QLabel {
+                border: 3px dashed #aaa; 
+                font-size: 24px; 
+                padding: 40px;
+                font-family: 'Microsoft YaHei';
+            }
+        """)
         layout.addWidget(self.label)
 
         self.close_btn = QPushButton("关闭")
-        self.close_btn.setFixedHeight(35)
+        self.close_btn.setFixedHeight(50)  # 增大按钮高度
+        self.close_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                font-family: 'Microsoft YaHei';
+            }
+        """)
         self.close_btn.clicked.connect(self.close)
         self.close_btn.setVisible(False)
         layout.addWidget(self.close_btn)
