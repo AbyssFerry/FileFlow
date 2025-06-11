@@ -271,6 +271,7 @@ def parse_folder_path(directory: str, API_KEY: str = "") -> bool:
         # === 步骤2-3: 调用AI总结每个文件 ===
         print("\n开始步骤2-3: 调用AI总结每个文件...")
         classifier = FileClassifier(API_KEY)
+        print(f"AI模型初始化完成，开始处理文件...")
         summarized_files = process_files_with_ai(file_info_list, classifier)
 
         if not summarized_files:
@@ -278,28 +279,42 @@ def parse_folder_path(directory: str, API_KEY: str = "") -> bool:
             return False
 
         # === 步骤4-5: 调用AI分类文件 ===
+        print("\n开始步骤4-5: 调用AI对文件进行智能分类...")
+        print(f"提交 {len(summarized_files)} 个文件到AI进行分类处理")
         classified_files = classify_and_standardize(summarized_files, classifier)
         if not classified_files:
+            print("步骤4-5失败: 无法完成文件分类")
             return False
+        
+        print(f"步骤4-5完成: 已成功创建 {len(classified_files['categories'])} 个目录分类")
+        print(f"分类完成的文件数量: {len(classified_files['files'])}")
 
         # === 步骤7: 组织文件 ===
+        print("\n开始步骤7: 根据AI分类结果组织文件...")
         try:
+            print("正在创建必要的目录结构...")
             organize_files(classified_files["files"])
+            print("步骤7完成: 所有文件已按AI建议重新组织")
         except Exception as e:
-            print(f"组织文件时出错: {str(e)}")
+            print(f"步骤7失败: 组织文件时出错: {str(e)}")
             return False
 
         # === 步骤8: 补全分类信息 ===
+        print("\n开始步骤8: 补全分类目录信息...")
         if not complete_category_info(classified_files):
+            print("步骤8失败: 无法补全分类信息")
             return False
+        print("步骤8完成: 已为所有分类目录补充尺寸和时间信息")
 
-        # === 步骤9: 打包初始文件 ===        
+        # === 步骤9: 打包初始文件 ===
+        print("\n开始步骤9: 打包初始文件...")
         try:
             pack_init_files(classified_files)
+            print("步骤9完成: 初始文件打包成功")
         except Exception as e: 
             print(f"打包初始文件时出错: {str(e)}")
             return False
-
+        print("所有步骤完成，文件分裂流程成功执行")
         return True
 
     except Exception as e:
