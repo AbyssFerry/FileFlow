@@ -10,14 +10,14 @@ from docx import Document
 import pdfplumber
 import logging
 from src.ui.uiprint import print
-
+from src.controllers_for_ai.ai_processing import FileClassifier
+from src.storage.database import folderShow, fileShow
 
 # 标准化项目根路径为SQL风格
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))).replace('\\', '/')
 sys.path.append(project_root)
 
-from src.controllers_for_ai.ai_processing import FileClassifier
-from src.storage.database import folderShow
+
 
 # Configure logging
 logging.getLogger("pdfplumber").setLevel(logging.ERROR)

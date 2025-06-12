@@ -8,7 +8,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.append(project_root)
 
 from src.controllers_for_ai.ai_processing import FileClassifier
-from src.storage.database import fileShow
+from src.storage.database import fileShow, fileDeleteByPath
 from src.ui.uiprint import print
 def pack_search(query: str, API_KEY: str = "") -> List[Dict[str, Any]]:
     """
@@ -36,10 +36,29 @@ def pack_search(query: str, API_KEY: str = "") -> List[Dict[str, Any]]:
             if 'absolute_path' in file:
                 file['absolute_path'] = file['absolute_path'].replace('\\', '/')
         print(f"成功获取 {len(files)} 个文件记录")
+        
+        # 检查文件是否存在于文件系统
+        print("正在检查文件是否存在...")
+        missing_files = []
+        for file in files[:]:  # 使用切片创建副本，因为我们会在循环中修改 files
+            path = file.get('absolute_path')
+            if path and not os.path.exists(path):
+                print(f"文件不存在，从数据库中删除: {path}")
+                try:
+                    fileDeleteByPath(path)
+                    missing_files.append(path)
+                    files.remove(file)  # 从列表中移除不存在的文件
+                except Exception as e:
+                    print(f"删除文件记录失败: {path}, 错误: {str(e)}")
+        if missing_files:
+            print(f"已从数据库中删除 {len(missing_files)} 个不存在的文件记录")
+        print(f"剩余有效文件记录: {len(files)}")
     except Exception as e:
         print(f"错误: 数据库查询失败: {str(e)}")
         raise RuntimeError(f"数据库查询失败: {str(e)}")
-        
+
+
+
     # 3. 调用AI分类器获取匹配文件
     print("\n步骤3: 正在使用AI匹配相关文件...")
     print("初始化AI模型...")
