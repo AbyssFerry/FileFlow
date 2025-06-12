@@ -1,7 +1,43 @@
 import sqlite3
+import os
+import sys
 from src.ui.uiprint import print
+
+def get_path(relative_path):
+    """
+    获取资源文件的绝对路径，兼容PyInstaller打包后的路径
+    
+    参数:
+        relative_path: 相对路径
+        
+    返回:
+        规范化的绝对路径
+    """
+    try:
+        base_path = sys._MEIPASS  # type: ignore # pyinstaller打包后的路径
+    except AttributeError:
+        base_path = os.path.abspath(".")  # 当前工作目录的路径
+ 
+    return os.path.normpath(os.path.join(base_path, relative_path))
+
 def get_connection():
-    return sqlite3.connect("fileflow_database.db")  # 这里就是连接的数据库文件
+    """
+    获取数据库连接，数据库文件位于程序运行目录下
+    返回: sqlite3.Connection对象
+    """
+    try:
+        # 使用get_path获取数据库文件的绝对路径
+        db_path = get_path("fileflow_database.db")
+        print(f"连接数据库: {db_path}")
+        
+        # 返回连接
+        return sqlite3.connect(db_path)
+    except Exception as e:
+        print(f"数据库连接错误: {str(e)}")
+        # 作为备用选项，尝试在用户主目录创建数据库
+        fallback_path = os.path.join(os.path.expanduser("~"), "fileflow_database.db")
+        print(f"尝试使用备用路径: {fallback_path}")
+        return sqlite3.connect(fallback_path)
 
 """ ****************************fileAdd模块************************ """
 def fileAdd(file_data: dict):
