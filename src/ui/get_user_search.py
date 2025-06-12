@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox, QGraphicsDropShadowEffect
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont, QColor
 from multiprocessing import Process, Queue
 from src.ui.show_target_files import ShowTargetFiles
@@ -14,6 +14,8 @@ def process_search(keyword, api_key, queue):
         queue.put({"error": str(e)})
 
 class GetUserSearch(QWidget):
+    closed = pyqtSignal()  # 新增
+
     def __init__(self, API_KEY=None):
         super().__init__()
         self.API_KEY = API_KEY
@@ -23,8 +25,7 @@ class GetUserSearch(QWidget):
         self.check_timer = QTimer()
         self.check_timer.timeout.connect(self.check_process)
         self.setWindowTitle("查询文件")
-        self.resize(900, 340)  # 风格A推荐窗口尺寸
-        # 风格A主窗口背景
+        self.resize(900, 340)
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -39,7 +40,6 @@ class GetUserSearch(QWidget):
         self.layout.setContentsMargins(40, 40, 40, 40)
         self.layout.setSpacing(32)
 
-        # 风格A标题
         title_label = QLabel("文件查询")
         title_font = QFont("Microsoft YaHei", 32, QFont.Bold)
         title_label.setFont(title_font)
@@ -55,7 +55,6 @@ class GetUserSearch(QWidget):
         """)
         self.layout.addWidget(title_label)
 
-        # 风格A输入提示
         self.label = QLabel("请输入目标文件关键词")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("""
@@ -69,7 +68,6 @@ class GetUserSearch(QWidget):
 
         self.h_layout = QHBoxLayout()
 
-        # 风格A输入框
         self.input_line = QLineEdit()
         self.input_line.setPlaceholderText("请输入关键词")
         self.input_line.setMinimumWidth(500)
@@ -90,7 +88,6 @@ class GetUserSearch(QWidget):
         """)
         self.input_line.returnPressed.connect(self.search)
 
-        # 风格A按钮
         btn_font = QFont("Microsoft YaHei", 20, QFont.Bold)
         self.search_btn = QPushButton("查找")
         self.search_btn.setFont(btn_font)
@@ -116,7 +113,6 @@ class GetUserSearch(QWidget):
                 color: #0d47a1;
             }
         """)
-        # 按钮阴影
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(14)
         shadow.setColor(QColor(180, 190, 210, 120))
@@ -130,7 +126,6 @@ class GetUserSearch(QWidget):
 
         self.layout.addLayout(self.h_layout)
 
-        # 查找中提示
         self.searching_label = QLabel("正在查找，请耐心等待ο(=•ω＜=)ρ⌒☆")
         self.searching_label.setAlignment(Qt.AlignCenter)
         self.searching_label.setStyleSheet("""
@@ -149,8 +144,7 @@ class GetUserSearch(QWidget):
         if not self.queue.empty():
             result = self.queue.get()
             self.check_timer.stop()
-            
-            # 恢复输入框和按钮
+
             self.input_line.show()
             self.search_btn.show()
             self.searching_label.hide()
@@ -159,7 +153,7 @@ class GetUserSearch(QWidget):
             if isinstance(result, dict) and "error" in result:
                 QMessageBox.critical(self, "错误", f"搜索时发生错误：{result['error']}")
                 return
-                
+
             self.search_results = result
             QTimer.singleShot(600, self.show_results)
 
@@ -175,20 +169,18 @@ class GetUserSearch(QWidget):
             print(f"用户输入的关键词：{keyword}")
             print(f"使用的API Key：{self.API_KEY}")
 
-            # 隐藏输入框和按钮，显示查找中提示
             self.input_line.hide()
             self.search_btn.hide()
             self.searching_label.show()
             self.label.setText("正在查找，请耐心等待")
 
-            # 启动搜索进程
             if self.process and self.process.is_alive():
                 self.process.terminate()
-                
-            self.process = Process(target=process_search, 
+
+            self.process = Process(target=process_search,
                                  args=(keyword, self.API_KEY, self.queue))
             self.process.start()
-            self.check_timer.start(100)  # 每100ms检查一次结果
+            self.check_timer.start(100)
 
         except ValueError as e:
             QMessageBox.warning(self, "警告", str(e))
@@ -201,18 +193,17 @@ class GetUserSearch(QWidget):
         if self.process and self.process.is_alive():
             self.process.terminate()
         print("查找窗口已关闭")
+        self.closed.emit()  # 关键：关闭时通知主窗口
         event.accept()
 
     def show_results(self):
         if not self.search_results:
             QMessageBox.warning(self, "提示", "未找到相关文件")
-            # 恢复输入框和按钮
             self.input_line.show()
             self.search_btn.show()
             self.searching_label.hide()
             self.label.setText("请输入目标文件关键词")
             return
-            
-        # 创建结果窗口并传递搜索结果
+
         self.target_files_window = ShowTargetFiles(files=self.search_results)
         self.target_files_window.show()

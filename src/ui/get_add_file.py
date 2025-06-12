@@ -16,15 +16,15 @@ def process_file(file_path, api_key, queue):
 
 class GetAddFile(QWidget):
     file_dropped = pyqtSignal(str)
+    closed = pyqtSignal()  # 新增
 
     def __init__(self, API_KEY=None):
         super().__init__()
         self.API_KEY = API_KEY
         self.setWindowTitle("拖入文件")
         self.setAcceptDrops(True)
-        self.resize(900, 650)  # A风格推荐窗口大小
+        self.resize(900, 650)
 
-        # 设置A风格主窗口背景色和圆角
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -44,7 +44,6 @@ class GetAddFile(QWidget):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(40)
 
-        # A风格标题
         title_label = QLabel("文件添加")
         title_font = QFont("Microsoft YaHei", 36, QFont.Bold)
         title_label.setFont(title_font)
@@ -60,7 +59,6 @@ class GetAddFile(QWidget):
         """)
         layout.addWidget(title_label)
 
-        # 拖入区域标签 A风格（加大尺寸）
         self.label = QLabel("请将文件拖入此区域")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setWordWrap(True)
@@ -78,7 +76,6 @@ class GetAddFile(QWidget):
         """)
         layout.addWidget(self.label)
 
-        # A风格按钮
         btn_font = QFont("Microsoft YaHei", 22, QFont.Bold)
         btn_style = """
             QPushButton {
@@ -106,7 +103,6 @@ class GetAddFile(QWidget):
         self.close_btn.setFont(btn_font)
         self.close_btn.setFixedSize(220, 56)
         self.close_btn.setStyleSheet(btn_style)
-        # 添加阴影效果
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(16)
         shadow.setColor(QColor(180, 190, 210, 120))
@@ -119,29 +115,27 @@ class GetAddFile(QWidget):
         self.setLayout(layout)
 
     def setEnabledClose(self, enabled: bool):
-        # 禁用或启用关闭按钮（包括窗口右上角的X）
         if not enabled:
             self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         else:
             self.setWindowFlag(Qt.WindowCloseButtonHint, True)
-        self.show()  # 重新应用窗口标志
+        self.show()
 
     def check_process(self):
         if not self.queue.empty():
             result = self.queue.get()
             self.timer.stop()
             self.is_processing = False
-            self.setEnabledClose(True)  # 处理完成后恢复关闭按钮
-            
+            self.setEnabledClose(True)
+
             if isinstance(result, dict) and "error" in result:
                 self.label.setText(f"处理文件时发生错误：{result['error']}")
                 return
-                
+
             if not result:
                 self.label.setText("文件解析失败")
                 return
 
-            # 在拖入窗口区域提示“文件添加成功”
             self.label.setText("文件添加成功！")
 
             self.move_info_window = ShowMoveTarget(result)
@@ -162,7 +156,7 @@ class GetAddFile(QWidget):
             urls = event.mimeData().urls()
             if not urls:
                 return
-                
+
             file_path = urls[0].toLocalFile()
             if not os.path.isfile(file_path):
                 self.label.setText("请拖入一个有效的文件")
@@ -170,23 +164,22 @@ class GetAddFile(QWidget):
 
             self.label.setText(f"正在处理文件：\n{file_path}\n请稍候...")
             self.is_processing = True
-            self.setEnabledClose(False)  # 禁用关闭按钮
-            
+            self.setEnabledClose(False)
+
             if not self.API_KEY:
                 raise ValueError("API Key未设置")
 
             print(f"[终端输出] 拖入的文件路径为：{file_path}")
             print(f"使用的API Key为：{self.API_KEY}")
-            
-            # 启动新进程处理文件
+
             if self.process and self.process.is_alive():
                 self.process.terminate()
-                
-            self.process = Process(target=process_file, 
+
+            self.process = Process(target=process_file,
                                  args=(file_path, self.API_KEY, self.queue))
             self.process.start()
-            self.timer.start(100)  # 每100ms检查一次结果
-            
+            self.timer.start(100)
+
             self.file_dropped.emit(file_path)
 
         except ValueError as e:
@@ -201,7 +194,6 @@ class GetAddFile(QWidget):
 
     def closeEvent(self, event):
         if self.is_processing:
-            # 禁止关闭窗口
             event.ignore()
             return
         if self.process and self.process.is_alive():
@@ -209,4 +201,5 @@ class GetAddFile(QWidget):
         if hasattr(self, 'move_info_window'):
             self.move_info_window.close()
         print("文件拖入窗口已关闭")
+        self.closed.emit()  # 关键：关闭时通知主窗口
         event.accept()

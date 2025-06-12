@@ -9,7 +9,7 @@ from src.ui.uiprint import print
 class ParseFolderThread(QThread):
     finished = pyqtSignal(bool)
     error = pyqtSignal(str)
-    log_signal = pyqtSignal(str)  # 新增日志信号
+    log_signal = pyqtSignal(str)
 
     def __init__(self, folder_path, api_key):
         super().__init__()
@@ -29,6 +29,7 @@ class ParseFolderThread(QThread):
 
 class GetInitFolder(QWidget):
     folder_dropped = pyqtSignal(str)
+    closed = pyqtSignal()  # 新增
 
     def __init__(self, API_KEY=None):
         super().__init__()
@@ -37,9 +38,8 @@ class GetInitFolder(QWidget):
         self.parse_thread = None
         self.setWindowTitle("拖入文件夹")
         self.setAcceptDrops(True)
-        self.resize(900, 650)  # A风格推荐窗口大小
+        self.resize(900, 650)
 
-        # 设置A风格主窗口背景色和圆角
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -55,7 +55,6 @@ class GetInitFolder(QWidget):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(40)
 
-        # A风格标题
         title_label = QLabel("文件夹初始化")
         title_font = QFont("Microsoft YaHei", 36, QFont.Bold)
         title_label.setFont(title_font)
@@ -71,11 +70,10 @@ class GetInitFolder(QWidget):
         """)
         layout.addWidget(title_label)
 
-        # 拖入区域标签 A风格（加大尺寸）
         self.label = QLabel("请将文件夹拖入此区域")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setWordWrap(True)
-        self.label.setMinimumHeight(220)  # 拖入框更高
+        self.label.setMinimumHeight(220)
         self.label.setStyleSheet("""
             QLabel {
                 border: 3px dashed #aaa;
@@ -89,7 +87,6 @@ class GetInitFolder(QWidget):
         """)
         layout.addWidget(self.label)
 
-        # A风格按钮
         btn_font = QFont("Microsoft YaHei", 22, QFont.Bold)
         btn_style = """
             QPushButton {
@@ -117,7 +114,6 @@ class GetInitFolder(QWidget):
         self.close_btn.setFont(btn_font)
         self.close_btn.setFixedSize(220, 56)
         self.close_btn.setStyleSheet(btn_style)
-        # 添加阴影效果
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(16)
         shadow.setColor(QColor(180, 190, 210, 120))
@@ -130,12 +126,11 @@ class GetInitFolder(QWidget):
         self.setLayout(layout)
 
     def setEnabledClose(self, enabled: bool):
-        # 禁用或启用关闭按钮（包括窗口右上角的X）
         if not enabled:
             self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         else:
             self.setWindowFlag(Qt.WindowCloseButtonHint, True)
-        self.show()  # 重新应用窗口标志
+        self.show()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -150,7 +145,6 @@ class GetInitFolder(QWidget):
             if urls:
                 folder_path = urls[0].toLocalFile()
                 if os.path.isdir(folder_path):
-                    # 检查是否有子文件夹
                     subdirs = [f for f in os.listdir(folder_path)
                                if os.path.isdir(os.path.join(folder_path, f))]
                     if subdirs:
@@ -165,7 +159,7 @@ class GetInitFolder(QWidget):
                     print("\n[开始] 准备处理文件夹...")
                     self.is_processing = True
                     self.label.setText(f"正在处理文件夹：\n{folder_path}\n请稍候...")
-                    self.setEnabledClose(False)  # 禁用关闭按钮
+                    self.setEnabledClose(False)
 
                     self.parse_thread = ParseFolderThread(folder_path, self.API_KEY)
                     self.parse_thread.log_signal.connect(print)
@@ -186,13 +180,13 @@ class GetInitFolder(QWidget):
     def on_parse_finished(self, result):
         self.is_processing = False
         self.label.setText("处理完成！" if result else "处理失败，请检查控制台输出")
-        self.setEnabledClose(True)  # 处理完成后恢复关闭按钮
+        self.setEnabledClose(True)
 
     def on_parse_error(self, error_msg):
         self.is_processing = False
         print(f"处理出错：{error_msg}")
         self.label.setText(f"处理失败：{error_msg}")
-        self.setEnabledClose(True)  # 出错后恢复关闭按钮
+        self.setEnabledClose(True)
 
     def set_close_buttons_visible(self, visible: bool):
         self.close_btn.setVisible(visible)
@@ -205,8 +199,10 @@ class GetInitFolder(QWidget):
                 self.parse_thread.terminate()
                 self.parse_thread.wait()
                 print("[关闭] 线程已停止")
+            self.closed.emit()  # 关键：关闭时通知主窗口
             event.accept()
         except Exception as e:
             error_info = traceback.format_exc()
             print(f"[关闭错误]\n{error_info}")
+            self.closed.emit()
             event.accept()
