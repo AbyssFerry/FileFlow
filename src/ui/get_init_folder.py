@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QMessageBox, QGraphicsDropShadowEffect
+from PyQt5.QtGui import QFont, QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QThread
 import os
 import traceback
@@ -36,39 +37,105 @@ class GetInitFolder(QWidget):
         self.parse_thread = None
         self.setWindowTitle("拖入文件夹")
         self.setAcceptDrops(True)
-        self.resize(800, 600)  # 增大窗口尺寸
+        self.resize(900, 650)  # A风格推荐窗口大小
+
+        # 设置A风格主窗口背景色和圆角
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #f8fafc, stop:1 #e3e8ee);
+                border-radius: 24px;
+            }
+        """)
+
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(40, 40, 40, 40)  # 增加边距
-        
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(40)
+
+        # A风格标题
+        title_label = QLabel("文件夹初始化")
+        title_font = QFont("Microsoft YaHei", 36, QFont.Bold)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #222;
+                letter-spacing: 8px;
+                font-weight: bold;
+                margin-bottom: 30px;
+                text-shadow: 2px 2px 8px #e0e0e0;
+            }
+        """)
+        layout.addWidget(title_label)
+
+        # 拖入区域标签 A风格（加大尺寸）
         self.label = QLabel("请将文件夹拖入此区域")
         self.label.setAlignment(Qt.AlignCenter)
+        self.label.setWordWrap(True)
+        self.label.setMinimumHeight(220)  # 拖入框更高
         self.label.setStyleSheet("""
             QLabel {
                 border: 3px dashed #aaa;
-                font-size: 24px;
-                padding: 40px;
+                font-size: 28px;
+                padding: 64px;
                 font-family: 'Microsoft YaHei';
+                background: #f8fafc;
+                border-radius: 20px;
+                color: #222;
             }
         """)
         layout.addWidget(self.label)
 
-        self.close_btn = QPushButton("关闭")
-        self.close_btn.setFixedHeight(50)  # 增大按钮高度
-        self.close_btn.setStyleSheet("""
+        # A风格按钮
+        btn_font = QFont("Microsoft YaHei", 22, QFont.Bold)
+        btn_style = """
             QPushButton {
-                font-size: 18px;
-                font-family: 'Microsoft YaHei', '微软雅黑';
-                padding: 5px 15px;
+                font-family: 'Microsoft YaHei';
+                font-size: 22px;
+                border-radius: 12px;
+                padding: 16px 0;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #e0e7ef, stop:1 #b6c6e2);
+                color: #222;
+                border: none;
             }
-        """)
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #c7d7ee, stop:1 #a4b8d8);
+                color: #1565c0;
+            }
+            QPushButton:pressed {
+                background: #b0b8c9;
+                color: #0d47a1;
+            }
+        """
+
+        self.close_btn = QPushButton("关闭")
+        self.close_btn.setFont(btn_font)
+        self.close_btn.setFixedSize(220, 56)
+        self.close_btn.setStyleSheet(btn_style)
+        # 添加阴影效果
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(16)
+        shadow.setColor(QColor(180, 190, 210, 120))
+        shadow.setOffset(0, 4)
+        self.close_btn.setGraphicsEffect(shadow)
         self.close_btn.clicked.connect(self.close)
         self.close_btn.setVisible(False)
-        layout.addWidget(self.close_btn)
+        layout.addWidget(self.close_btn, alignment=Qt.AlignRight)
 
         self.setLayout(layout)
+
+    def setEnabledClose(self, enabled: bool):
+        # 禁用或启用关闭按钮（包括窗口右上角的X）
+        if not enabled:
+            self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        else:
+            self.setWindowFlag(Qt.WindowCloseButtonHint, True)
+        self.show()  # 重新应用窗口标志
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -78,23 +145,36 @@ class GetInitFolder(QWidget):
         try:
             if self.is_processing:
                 return
-                
+
             urls = event.mimeData().urls()
             if urls:
                 folder_path = urls[0].toLocalFile()
                 if os.path.isdir(folder_path):
+                    # 检查是否有子文件夹
+                    subdirs = [f for f in os.listdir(folder_path)
+                               if os.path.isdir(os.path.join(folder_path, f))]
+                    if subdirs:
+                        QMessageBox.warning(
+                            self,
+                            "子目录存在",
+                            "检测到该目录下还有子文件夹，请将所有子目录下的文件移到当前目录后再拖入！"
+                        )
+                        self.label.setText("请将所有子目录下的文件移到当前目录后再拖入！")
+                        return
+
                     print("\n[开始] 准备处理文件夹...")
                     self.is_processing = True
                     self.label.setText(f"正在处理文件夹：\n{folder_path}\n请稍候...")
-                    
+                    self.setEnabledClose(False)  # 禁用关闭按钮
+
                     self.parse_thread = ParseFolderThread(folder_path, self.API_KEY)
-                    self.parse_thread.log_signal.connect(print)  # 连接日志信号到窗口print
+                    self.parse_thread.log_signal.connect(print)
                     self.parse_thread.finished.connect(self.on_parse_finished)
                     self.parse_thread.error.connect(self.on_parse_error)
                     print("[线程] 正在启动线程...")
                     self.parse_thread.start()
                     print("[线程] 线程已启动")
-                    
+
                     self.folder_dropped.emit(folder_path)
                 else:
                     self.label.setText("请拖入一个有效的文件夹")
@@ -106,18 +186,20 @@ class GetInitFolder(QWidget):
     def on_parse_finished(self, result):
         self.is_processing = False
         self.label.setText("处理完成！" if result else "处理失败，请检查控制台输出")
+        self.setEnabledClose(True)  # 处理完成后恢复关闭按钮
 
     def on_parse_error(self, error_msg):
         self.is_processing = False
         print(f"处理出错：{error_msg}")
         self.label.setText(f"处理失败：{error_msg}")
+        self.setEnabledClose(True)  # 出错后恢复关闭按钮
 
     def set_close_buttons_visible(self, visible: bool):
         self.close_btn.setVisible(visible)
 
     def closeEvent(self, event):
         try:
-            print("[关闭] 窗口正在关闭...")
+            print("文件目录拖入窗口已关闭")
             if self.parse_thread and self.parse_thread.isRunning():
                 print("[关闭] 正在停止线程...")
                 self.parse_thread.terminate()

@@ -28,17 +28,24 @@ class ShowTargetFiles(QWidget):
         self.table.setSelectionMode(QTableWidget.SingleSelection)
         self.table.cellDoubleClicked.connect(self.open_file)
 
-        # 设置表头和列宽
+        # 设置表头和列宽：前几列可拖动，最后一列自动填满
         header = self.table.horizontalHeader()
-        for i in range(self.table.columnCount()):
-            header.setSectionResizeMode(i, QHeaderView.Interactive)  # 每一列都可拖动
-        header.setStretchLastSection(False)
-        # 设置初始列宽
-        self.table.setColumnWidth(0, 640)
-        self.table.setColumnWidth(1, 360)
-        self.table.setColumnWidth(2, 180)
-        self.table.setColumnWidth(3, 200)
-        self.table.setColumnWidth(4, 700)
+        for i in range(self.table.columnCount() - 1):
+            header.setSectionResizeMode(i, QHeaderView.Interactive)
+        header.setSectionResizeMode(self.table.columnCount() - 1, QHeaderView.Stretch)
+        header.setStretchLastSection(True)
+
+        # 计算初始宽度，使表格铺满窗口
+        total_width = self.width()
+        col_widths = [
+            int(total_width * 0.29),
+            int(total_width * 0.14),
+            int(total_width * 0.07),
+            int(total_width * 0.09)
+        ]
+        for i, w in enumerate(col_widths):
+            self.table.setColumnWidth(i, w)
+        # 最后一列不设置宽度，由Stretch自动填充
 
         # 允许水平滚动
         self.table.setHorizontalScrollMode(QTableWidget.ScrollPerPixel)
