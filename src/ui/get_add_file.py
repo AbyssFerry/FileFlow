@@ -1,18 +1,26 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QMessageBox, QGraphicsDropShadowEffect
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QThread
 from PyQt5.QtGui import QFont, QColor
 import os
-from multiprocessing import Process, Queue
 from src.ui.show_move_target import ShowMoveTarget
 from src.controllers.parser_file import parser_file
 from src.ui.uiprint import print
 
-def process_file(file_path, api_key, queue):
-    try:
-        result = parser_file(file_path, api_key)
-        queue.put(result)
-    except Exception as e:
-        queue.put({"error": str(e)})
+# 添加QThread子类替代Process
+class FileProcessThread(QThread):
+    result_ready = pyqtSignal(object)
+    
+    def __init__(self, file_path, api_key):
+        super().__init__()
+        self.file_path = file_path
+        self.api_key = api_key
+        
+    def run(self):
+        try:
+            result = parser_file(self.file_path, self.api_key)
+            self.result_ready.emit(result)
+        except Exception as e:
+            self.result_ready.emit({"error": str(e)})
 
 class GetAddFile(QWidget):
     file_dropped = pyqtSignal(str)
@@ -33,10 +41,8 @@ class GetAddFile(QWidget):
             }
         """)
         self.init_ui()
-        self.process = None
-        self.queue = Queue()
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.check_process)
+        # 替换Process为Thread
+        self.file_thread = None
         self.is_processing = False
 
     def init_ui(self):
@@ -122,27 +128,8 @@ class GetAddFile(QWidget):
         self.show()
 
     def check_process(self):
-        if not self.queue.empty():
-            result = self.queue.get()
-            self.timer.stop()
-            self.is_processing = False
-            self.setEnabledClose(True)
-
-            if isinstance(result, dict) and "error" in result:
-                self.label.setText(f"处理文件时发生错误：{result['error']}")
-                return
-
-            if not result:
-                self.label.setText("文件解析失败")
-                return
-
-            self.label.setText("文件添加成功！")
-
-            self.move_info_window = ShowMoveTarget(result)
-            self.move_info_window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-            self.move_info_window.show()
-            self.move_info_window.raise_()
-            self.close_btn.setVisible(True)
+        # 保留此方法以保持兼容性，但不再使用
+        pass
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -172,22 +159,47 @@ class GetAddFile(QWidget):
             print(f"[终端输出] 拖入的文件路径为：{file_path}")
             print(f"使用的API Key为：{self.API_KEY}")
 
-            if self.process and self.process.is_alive():
-                self.process.terminate()
+            # 替换Process为QThread
+            if self.file_thread and self.file_thread.isRunning():
+                self.file_thread.terminate()
+                self.file_thread.wait()
 
-            self.process = Process(target=process_file,
-                                 args=(file_path, self.API_KEY, self.queue))
-            self.process.start()
-            self.timer.start(100)
+            self.file_thread = FileProcessThread(file_path, self.API_KEY)
+            self.file_thread.result_ready.connect(self.on_result_ready)
+            self.file_thread.start()
 
             self.file_dropped.emit(file_path)
 
         except ValueError as e:
             QMessageBox.warning(self, "警告", str(e))
             print(f"错误: {str(e)}")
+            self.is_processing = False
+            self.setEnabledClose(True)
         except Exception as e:
             QMessageBox.critical(self, "错误", f"处理文件时发生错误：{str(e)}")
             print(f"错误: {str(e)}")
+            self.is_processing = False
+            self.setEnabledClose(True)
+
+    def on_result_ready(self, result):
+        self.is_processing = False
+        self.setEnabledClose(True)
+
+        if isinstance(result, dict) and "error" in result:
+            self.label.setText(f"处理文件时发生错误：{result['error']}")
+            return
+
+        if not result:
+            self.label.setText("文件解析失败")
+            return
+
+        self.label.setText("文件添加成功！")
+
+        self.move_info_window = ShowMoveTarget(result)
+        self.move_info_window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        self.move_info_window.show()
+        self.move_info_window.raise_()
+        self.close_btn.setVisible(True)
 
     def set_close_buttons_visible(self, visible: bool):
         self.close_btn.setVisible(visible)
@@ -196,10 +208,12 @@ class GetAddFile(QWidget):
         if self.is_processing:
             event.ignore()
             return
-        if self.process and self.process.is_alive():
-            self.process.terminate()
+        # 终止线程而非进程
+        if self.file_thread and self.file_thread.isRunning():
+            self.file_thread.terminate()
+            self.file_thread.wait()
         if hasattr(self, 'move_info_window'):
             self.move_info_window.close()
         print("文件拖入窗口已关闭")
-        self.closed.emit()  # 关键：关闭时通知主窗口
+        self.closed.emit()
         event.accept()
