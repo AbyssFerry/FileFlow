@@ -169,3 +169,11 @@ def reset_database():
         cursor.execute("DELETE FROM directory")
         conn.commit()
         print("✅ 数据库内容已初始化（文件表和目录表数据已清空）")
+
+def is_file_table_empty():
+    sql = "SELECT COUNT(*) FROM file"
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        count = cursor.fetchone()[0]
+        return count == 0

@@ -1,59 +1,117 @@
-from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QApplication, QMessageBox
-from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (
+    QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QApplication, QMessageBox, QLabel, QGraphicsDropShadowEffect
+)
+from PyQt5.QtGui import QFont, QColor
 from PyQt5.QtCore import Qt
 from src.ui.get_init_folder import GetInitFolder
 from src.ui.get_add_file import GetAddFile
 from src.ui.get_user_search import GetUserSearch
 from src.ui.get_api_key import GetAPIKey
 from src.ui.uiprint import print
-
+from src.storage.database import is_file_table_empty
+from src.storage.database import reset_database
 
 class GetUserChoice(QWidget):
     def __init__(self):
         super().__init__()
         self.API_KEY = None
-        self.folder_initialized = False  # 新增：文件库是否初始化
         self.setWindowTitle("请选择操作")
-        self.resize(600, 500)  # 增大窗口尺寸
-        # self.progress_window = None  # 注释进度条变量
-        
-        # 完全初始化界面但不显示
+        self.resize(900, 700)
+
+        # 设置主窗口背景色和圆角
+        self.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #f8fafc, stop:1 #e3e8ee);
+                border-radius: 24px;
+            }
+        """)
+
         self.init_ui()
         self.hide()
-        
-        # 显示API输入窗口
         self.show_api_input()
 
     def init_ui(self):
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(50, 40, 50, 40)  # 增加边距
-        main_layout.setSpacing(40)  # 增加按钮间距
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(50)
 
-        font = QFont()
-        font.setPointSize(18)  # 增大字体
+        btn_font = QFont("Microsoft YaHei", 26, QFont.Bold)
+        btn_style = """
+            QPushButton {
+                font-family: 'Microsoft YaHei';
+                font-size: 26px;
+                border-radius: 16px;
+                padding: 22px 0;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #e0e7ef, stop:1 #b6c6e2);
+                color: #222;
+                border: none;
+                box-shadow: 0px 4px 16px rgba(0,0,0,0.08);
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #c7d7ee, stop:1 #a4b8d8);
+                color: #1565c0;
+            }
+            QPushButton:pressed {
+                background: #b0b8c9;
+                color: #0d47a1;
+            }
+        """
 
         def create_button(text, slot):
             btn_container = QHBoxLayout()
             btn = QPushButton(text)
-            btn.setFont(font)
-            btn.setFixedSize(350, 80)  # 增大按钮尺寸
-            btn.setStyleSheet("""
-                QPushButton {
-                    font-family: 'Microsoft YaHei';
-                    padding: 10px;
-                }
-            """)
+            btn.setFont(btn_font)
+            btn.setFixedSize(420, 80)
+            btn.setStyleSheet(btn_style)
+            # 添加阴影效果
+            shadow = QGraphicsDropShadowEffect()
+            shadow.setBlurRadius(18)
+            shadow.setColor(QColor(180, 190, 210, 120))
+            shadow.setOffset(0, 6)
+            btn.setGraphicsEffect(shadow)
             btn.clicked.connect(slot)
             btn_container.addStretch()
             btn_container.addWidget(btn)
             btn_container.addStretch()
             main_layout.addLayout(btn_container)
 
+        # 高端大气标题
+        title_label = QLabel("FILE-FLOW")
+        title_font = QFont("Microsoft YaHei", 44, QFont.Bold)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #222;
+                letter-spacing: 10px;
+                font-weight: bold;
+                margin-bottom: 40px;
+                text-shadow: 2px 2px 8px #e0e0e0;
+            }
+        """)
+        main_layout.addWidget(title_label)
+
+        # 重置数据库按钮（放在标题下）
+        create_button("重置数据库", self.reset_database_and_restart)
+
         create_button("初始化文件库", self.open_init_folder)
         create_button("添加文件", self.open_add_file)
         create_button("查询文件", self.open_search)
+        create_button("退出", QApplication.quit)
 
         self.setLayout(main_layout)
+
+    def reset_database_and_restart(self):
+        reply = QMessageBox.question(self, "重置数据库", "确定要重置数据库吗？此操作会清空所有数据且无法恢复！", 
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            reset_database()
+            QMessageBox.information(self, "提示", "数据库已重置，请重新初始化文件库。")
+            self.hide()
+            self.show_api_input()
 
     def show_api_input(self):
         self.api_window = GetAPIKey()
@@ -64,7 +122,7 @@ class GetUserChoice(QWidget):
         if api_key:
             print("API Key 已接收:", api_key)
             self.API_KEY = api_key
-            self.show()  # 只有在成功接收到API后才显示主窗口
+            self.show()
         else:
             print("未接收到API Key")
             self.close()
@@ -79,41 +137,32 @@ class GetUserChoice(QWidget):
         self.init_window.show()
 
     def handle_folder_dropped(self, folder_path):
-        # 文件库初始化成功后，设置标志
-        self.folder_initialized = True
-        # QMessageBox.information(self, "提示", "文件库初始化成功！")
-        # self.progress_window = ShowProgressBar(self.init_window)
-        # self.progress_window.show()
-        # self.progress_window.start_progress("文件目录整理成功")
-        pass  # 保留方法但不执行任何操作
+        pass  # 不再需要设置 self.folder_initialized
 
     def open_add_file(self):
         if not self.API_KEY:
             print("API Key未设置")
             QMessageBox.warning(self, "警告", "API Key未设置")
             return
-        if not self.folder_initialized:
+        if is_file_table_empty():
             QMessageBox.warning(self, "警告", "请先初始化文件库")
             return
-        self.add_window = GetAddFile(API_KEY=self.API_KEY)  # 修改这里，传入API_KEY
+        self.add_window = GetAddFile(API_KEY=self.API_KEY)
         self.add_window.file_dropped.connect(self.handle_file_dropped)
         self.add_window.show()
 
     def handle_file_dropped(self, file_path):
-        # self.progress_window = ShowProgressBar(self.add_window)
-        # self.progress_window.show()
-        # self.progress_window.start_progress("文件整理完成")
-        pass  # 保留方法但不执行任何操作
+        pass
 
     def open_search(self):
         if not self.API_KEY:
             print("API Key未设置")
             QMessageBox.warning(self, "警告", "API Key未设置")
             return
-        if not self.folder_initialized:
+        if is_file_table_empty():
             QMessageBox.warning(self, "警告", "请先初始化文件库")
             return
-        self.search_window = GetUserSearch(API_KEY=self.API_KEY)  # 修改这里，传入API_KEY
+        self.search_window = GetUserSearch(API_KEY=self.API_KEY)
         self.search_window.show()
 
     def closeEvent(self, event):
