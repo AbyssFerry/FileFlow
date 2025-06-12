@@ -15,20 +15,20 @@ def move_file(fileNewPath):
         os.makedirs(new_dir, exist_ok=True)
     
     # 检查目标文件是否已存在
-    if os.path.exists(new_absolute_path):
-        print(f"\n=== 移动文件 ===")
-        print(f"文件名称: {name}")
-        print(f"源路径: {absolute_path}")
-        print(f"目标路径: {new_absolute_path}")
-        print(f"⚠️ 目标位置已存在同名文件，跳过移动操作")
+    # if os.path.exists(new_absolute_path):
+    #     print(f"\n=== 移动文件 ===")
+    #     print(f"文件名称: {name}")
+    #     print(f"源路径: {absolute_path}")
+    #     print(f"目标路径: {new_absolute_path}")
+    #     print(f"⚠️ 目标位置已存在同名文件，跳过移动操作")
         
-        # 即使不移动，也返回相同的结果结构
-        newPath_and_reason = {
-            "name": name,
-            "new_absolute_path": '原本路径:' + new_absolute_path,
-            "reason_for_move": '本文件已存在,未执行操作,上面的新路径为原本路径。'
-        }
-        return newPath_and_reason
+    #     # 即使不移动，也返回相同的结果结构
+    #     newPath_and_reason = {
+    #         "name": name,
+    #         "new_absolute_path": '原本路径:' + new_absolute_path,
+    #         "reason_for_move": '本文件已存在,未执行操作,上面的新路径为原本路径。'
+    #     }
+    #     return newPath_and_reason
     
     print(f"\n=== 移动文件 ===")
     print(f"文件名称: {name}")
