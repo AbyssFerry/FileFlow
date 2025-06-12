@@ -15,10 +15,10 @@ class GetUserChoice(QWidget):
     def __init__(self):
         super().__init__()
         self.API_KEY = None
+        self.child_window_opened = False
         self.setWindowTitle("请选择操作")
         self.resize(900, 700)
 
-        # 设置主窗口背景色和圆角
         self.setStyleSheet("""
             QWidget {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -60,13 +60,14 @@ class GetUserChoice(QWidget):
             }
         """
 
-        def create_button(text, slot):
+        self.btns = {}
+
+        def create_button(text, slot, key=None):
             btn_container = QHBoxLayout()
             btn = QPushButton(text)
             btn.setFont(btn_font)
             btn.setFixedSize(420, 80)
             btn.setStyleSheet(btn_style)
-            # 添加阴影效果
             shadow = QGraphicsDropShadowEffect()
             shadow.setBlurRadius(18)
             shadow.setColor(QColor(180, 190, 210, 120))
@@ -77,8 +78,9 @@ class GetUserChoice(QWidget):
             btn_container.addWidget(btn)
             btn_container.addStretch()
             main_layout.addLayout(btn_container)
+            if key:
+                self.btns[key] = btn
 
-        # 高端大气标题
         title_label = QLabel("FILE-FLOW")
         title_font = QFont("Microsoft YaHei", 44, QFont.Bold)
         title_label.setFont(title_font)
@@ -94,24 +96,23 @@ class GetUserChoice(QWidget):
         """)
         main_layout.addWidget(title_label)
 
-        # 重置数据库按钮（放在标题下）
         create_button("重置数据库", self.reset_database_and_restart)
-
-        create_button("初始化文件库", self.open_init_folder)
-        create_button("添加文件", self.open_add_file)
-        create_button("查询文件", self.open_search)
-        create_button("退出", QApplication.quit)
+        create_button("初始化文件库", self.open_init_folder, key="init")
+        create_button("添加文件", self.open_add_file, key="add")
+        create_button("查询文件", self.open_search, key="search")
+        create_button("退出", self.try_quit, key="quit")
 
         self.setLayout(main_layout)
 
     def reset_database_and_restart(self):
-        reply = QMessageBox.question(self, "重置数据库", "确定要重置数据库吗？此操作会清空所有数据且无法恢复！", 
+        if self.child_window_opened:
+            QMessageBox.warning(self, "警告", "请先关闭当前子窗口后再进行其他操作")
+            return
+        reply = QMessageBox.question(self, "重置数据库", "确定要重置数据库吗？此操作会清空所有数据且无法恢复！",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             reset_database()
             QMessageBox.information(self, "提示", "数据库已重置，请重新初始化文件库。")
-            self.hide()
-            self.show_api_input()
 
     def show_api_input(self):
         self.api_window = GetAPIKey()
@@ -128,18 +129,26 @@ class GetUserChoice(QWidget):
             self.close()
 
     def open_init_folder(self):
+        if self.child_window_opened:
+            QMessageBox.warning(self, "警告", "请先关闭当前子窗口后再进行其他操作")
+            return
         if not self.API_KEY:
             print("API Key未设置")
             QMessageBox.warning(self, "警告", "API Key未设置")
             return
         self.init_window = GetInitFolder(API_KEY=self.API_KEY)
         self.init_window.folder_dropped.connect(self.handle_folder_dropped)
+        self.init_window.closed.connect(self.child_window_closed)  # 用自定义信号
+        self.child_window_opened = True
         self.init_window.show()
 
     def handle_folder_dropped(self, folder_path):
-        pass  # 不再需要设置 self.folder_initialized
+        pass
 
     def open_add_file(self):
+        if self.child_window_opened:
+            QMessageBox.warning(self, "警告", "请先关闭当前子窗口后再进行其他操作")
+            return
         if not self.API_KEY:
             print("API Key未设置")
             QMessageBox.warning(self, "警告", "API Key未设置")
@@ -149,12 +158,17 @@ class GetUserChoice(QWidget):
             return
         self.add_window = GetAddFile(API_KEY=self.API_KEY)
         self.add_window.file_dropped.connect(self.handle_file_dropped)
+        self.add_window.closed.connect(self.child_window_closed)  # 用自定义信号
+        self.child_window_opened = True
         self.add_window.show()
 
     def handle_file_dropped(self, file_path):
         pass
 
     def open_search(self):
+        if self.child_window_opened:
+            QMessageBox.warning(self, "警告", "请先关闭当前子窗口后再进行其他操作")
+            return
         if not self.API_KEY:
             print("API Key未设置")
             QMessageBox.warning(self, "警告", "API Key未设置")
@@ -163,7 +177,18 @@ class GetUserChoice(QWidget):
             QMessageBox.warning(self, "警告", "请先初始化文件库")
             return
         self.search_window = GetUserSearch(API_KEY=self.API_KEY)
+        self.search_window.closed.connect(self.child_window_closed)  # 用自定义信号
+        self.child_window_opened = True
         self.search_window.show()
+
+    def child_window_closed(self):
+        self.child_window_opened = False
+
+    def try_quit(self):
+        if self.child_window_opened:
+            QMessageBox.warning(self, "警告", "请先关闭当前子窗口后再进行其他操作")
+            return
+        self.close()
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, '确认',
