@@ -176,6 +176,7 @@ def parser_file(file_path, API_KEY: str = ""):
         print(f"错误: 分类文件时发生异常: {str(e)}")
         raise RuntimeError(f"分类文件时发生异常: {str(e)}")
 
+    
     # 5. 移动文件（处理标准化路径）
     print("\n步骤5: 移动文件到分类位置...")
     try:
@@ -187,17 +188,16 @@ def parser_file(file_path, API_KEY: str = ""):
     except Exception as e:
         print(f"错误: 移动文件时出错: {str(e)}")
         raise RuntimeError(f"移动文件时出错: {str(e)}")
-    
+     
     # 6. 初始化文件打包（处理标准化路径）
     print("\n步骤6: 初始化文件打包...")
     try:
-        # 使用移动后更新的路径信息进行打包
-        pack_init_file(newPath_and_reason) 
+        pack_init_file(fileNewPath) 
         print("文件打包成功")
+        
     except Exception as e:
         print(f"错误: 打包初始文件时出错: {str(e)}")
         raise RuntimeError(f"打包初始文件时出错: {str(e)}")
-     
     # 7. 返回结果（标准化路径）
     print("\n===== 文件处理完成 =====")
     return newPath_and_reason
