@@ -1,17 +1,25 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox, QGraphicsDropShadowEffect
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread
 from PyQt5.QtGui import QFont, QColor
-from multiprocessing import Process, Queue
 from src.ui.show_target_files import ShowTargetFiles
 from src.controllers.pack_search import pack_search
 from src.ui.uiprint import print
 
-def process_search(keyword, api_key, queue):
-    try:
-        result = pack_search(keyword, api_key)
-        queue.put(result)
-    except Exception as e:
-        queue.put({"error": str(e)})
+# 添加QThread子类替代Process
+class SearchThread(QThread):
+    result_ready = pyqtSignal(object)
+    
+    def __init__(self, keyword, api_key):
+        super().__init__()
+        self.keyword = keyword
+        self.api_key = api_key
+        
+    def run(self):
+        try:
+            result = pack_search(self.keyword, self.api_key)
+            self.result_ready.emit(result)
+        except Exception as e:
+            self.result_ready.emit({"error": str(e)})
 
 class GetUserSearch(QWidget):
     closed = pyqtSignal()  # 新增
@@ -20,10 +28,8 @@ class GetUserSearch(QWidget):
         super().__init__()
         self.API_KEY = API_KEY
         self.search_results = None
-        self.process = None
-        self.queue = Queue()
-        self.check_timer = QTimer()
-        self.check_timer.timeout.connect(self.check_process)
+        # 替换Process为Thread
+        self.search_thread = None
         self.setWindowTitle("查询文件")
         self.resize(900, 340)
         self.setStyleSheet("""
@@ -141,21 +147,8 @@ class GetUserSearch(QWidget):
         self.setLayout(self.layout)
 
     def check_process(self):
-        if not self.queue.empty():
-            result = self.queue.get()
-            self.check_timer.stop()
-
-            self.input_line.show()
-            self.search_btn.show()
-            self.searching_label.hide()
-            self.label.setText("请输入目标文件关键词")
-
-            if isinstance(result, dict) and "error" in result:
-                QMessageBox.critical(self, "错误", f"搜索时发生错误：{result['error']}")
-                return
-
-            self.search_results = result
-            QTimer.singleShot(600, self.show_results)
+        # 保留此方法以保持兼容性，但不再使用
+        pass
 
     def search(self):
         try:
@@ -174,13 +167,14 @@ class GetUserSearch(QWidget):
             self.searching_label.show()
             self.label.setText("正在查找，请耐心等待")
 
-            if self.process and self.process.is_alive():
-                self.process.terminate()
+            # 替换Process为QThread
+            if self.search_thread and self.search_thread.isRunning():
+                self.search_thread.terminate()
+                self.search_thread.wait()
 
-            self.process = Process(target=process_search,
-                                 args=(keyword, self.API_KEY, self.queue))
-            self.process.start()
-            self.check_timer.start(100)
+            self.search_thread = SearchThread(keyword, self.API_KEY)
+            self.search_thread.result_ready.connect(self.on_result_ready)
+            self.search_thread.start()
 
         except ValueError as e:
             QMessageBox.warning(self, "警告", str(e))
@@ -189,11 +183,26 @@ class GetUserSearch(QWidget):
             QMessageBox.critical(self, "错误", f"搜索时发生错误：{str(e)}")
             print(f"错误: {str(e)}")
 
+    def on_result_ready(self, result):
+        self.input_line.show()
+        self.search_btn.show()
+        self.searching_label.hide()
+        self.label.setText("请输入目标文件关键词")
+
+        if isinstance(result, dict) and "error" in result:
+            QMessageBox.critical(self, "错误", f"搜索时发生错误：{result['error']}")
+            return
+
+        self.search_results = result
+        QTimer.singleShot(600, self.show_results)
+
     def closeEvent(self, event):
-        if self.process and self.process.is_alive():
-            self.process.terminate()
+        # 终止线程而非进程
+        if self.search_thread and self.search_thread.isRunning():
+            self.search_thread.terminate()
+            self.search_thread.wait()
         print("查找窗口已关闭")
-        self.closed.emit()  # 关键：关闭时通知主窗口
+        self.closed.emit()
         event.accept()
 
     def show_results(self):
