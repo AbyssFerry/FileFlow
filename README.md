@@ -1,6 +1,7 @@
 # 📁 FileFlow - 智能文件分类工具
 
 > 本地文档太多太乱？让 FileFlow 帮你一键智能分类整理！
+> ![FileFlow 主界面](doc/interface.png)
 ---
 ## 🚀 项目简介
 
@@ -20,7 +21,6 @@
 
 ## 📸 项目演示
 [FileFlow 软件演示视频](doc/FileFlow软件演示.mp4)
-
 ---
 
 ## 🛠️ 功能特点
@@ -84,16 +84,29 @@ python run_app.py
 
 ---
 
-## 🧪 示例数据
+## 🌐 技术栈
 
-你可以使用项目中的 `sample_docs/` 文件夹进行快速体验，内含：
-
-- 学术论文
-    
-- 求职简历
-    
-- 报告与备忘录
-    
+- **Python 3.12**：主要开发语言
+- **PyQt5**：构建图形用户界面
+- **SQLite**：本地数据库存储
+- **LangChain**：AI 模块
+- **PyInstaller**：程序打包与发布
 
 ---
-## 🤝 贡献
+## 🎉 贡献者
+
+- **[@AbyssFerry](https://gitee.com/abyssferry)**  
+  🧭 项目管理｜🏗️ 架构设计｜🧪 测试｜🔧 维护｜🚀 部署
+
+- **[@Yemorenkuming](https://gitee.com/yemorenkuming)**  
+  🎨 前端 UI 设计
+
+- **[@WTS-01-10-Tree](https://gitee.com/wts-01-10-Tree)**  
+  🤖 后端 AI 逻辑设计
+
+- **[@Wangch07](https://gitee.com/wangch07)**  
+  🖥️ 后端非 AI 逻辑设计
+
+- **Apollo**  
+  🗄️ 数据库设计
+
