@@ -8,3 +8,4 @@ file_flow.log
 build/
 dist/
 res/
+version.txt
