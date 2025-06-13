@@ -77,7 +77,7 @@ FileFlow                    # 项目根目录
 3. 按照界面输入配置 DeepSeek API Key
 4. 通过图形界面进行文件解析和智能分类，无需额外安装 Python 环境或依赖
 
-发行版下载地址：[点击这里下载最新版本](https://gitee.com/abyssferry/file-flow/releases)
+发行版下载地址(下滑下载FileFlow.zip)：[点击这里下载最新版本](https://gitee.com/abyssferry/file-flow/releases)
 
 ---
 
