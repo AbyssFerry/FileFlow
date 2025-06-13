@@ -5,3 +5,7 @@ testdoc
 testdoc copy
 temp.py
 file_flow.log
+build/
+dist/
+res/
+version.txt
