@@ -19,8 +19,17 @@
 
 ---
 
+## ⚠️ 注意事项
+
+* 当前仅支持 **[DeepSeek API](https://platform.deepseek.com/)**，请先前往申请密钥并填写到配置中
+* 每次整理文件建议 **控制在 50 个以内**，避免超过模型输出限制引发错误
+* AI 返回的路径经过处理为相对路径再进行拼接优化，以限制文件移动，但**建议重要文件先备份后再操作**，以防误删或替换
+
+---
+
 ## 📸 项目演示
-[FileFlow 软件演示视频](doc/FileFlow软件演示.mp4)
+### [FileFlow 软件演示视频](doc/FileFlow软件演示.mp4)
+
 ---
 
 ## 🛠️ 功能特点
@@ -33,7 +42,7 @@
     
 - ✅ GUI：使用 PyQt5 构建可视化操作界面
     
-- ✅ 轻量：极简轻量文件
+- ✅ 轻量：极简轻量软件
     
 
 ---
@@ -93,6 +102,21 @@ python run_app.py
 - **PyInstaller**：程序打包与发布
 
 ---
+
+## ⭐ Star 支持
+
+如果你觉得这个项目对你有帮助，欢迎点个 Star ⭐ 支持一下！
+
+---
+
+## 📫 联系我们
+
+如有问题或建议，欢迎通过 Gitee Issue 方式联系：
+
+- Gitee Issue: [点击提交问题](https://gitee.com/abyssferry/file-flow/issues)
+
+---
+
 ## 🎉 贡献者
 
 - **[@AbyssFerry](https://gitee.com/abyssferry)**  
