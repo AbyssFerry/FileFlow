@@ -156,8 +156,8 @@ def process_files_with_ai(file_info_list, classifier):
             print(f"[{i+1}/{total_ai_files}] 总结文件 {file_info['name']} 时出错: {str(e)}")
             return None
     import os
-    # 限制最大线程数为40，避免过多线程导致系统资源耗尽
-    max_threads = min(40, (os.cpu_count() or 1) * 2)
+    # 限制最大线程数为25，避免过多线程导致系统资源耗尽
+    max_threads = min(25, (os.cpu_count() or 1) * 2)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         results = list(executor.map(summarize, enumerate(file_info_list)))
 
