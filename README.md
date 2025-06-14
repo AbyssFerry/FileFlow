@@ -21,7 +21,7 @@
 
 ## ⚠️ 注意事项
 
-* 当前仅支持 **[DeepSeek API](https://platform.deepseek.com/)**，请先前往申请密钥并填写到配置中
+* 当前仅支持 **[DeepSeek API](https://platform.deepseek.com/)**，请先前往页面登陆后，按照如下步骤：点击API keys->点击创建API key->输入名字（什么名字都可以）->保存显示的密钥（不保存下次无法查看）->再点击充值（50个文件整理大概需要0.06元）
 * 每次整理文件建议 **控制在 50 个以内**，避免超过模型输出限制引发错误
 * AI 返回的路径经过处理为相对路径再进行拼接优化，以限制文件移动，但**建议重要文件先备份后再操作**，以防误删或替换
 
@@ -77,7 +77,7 @@ FileFlow                    # 项目根目录
 3. 按照界面输入配置 DeepSeek API Key
 4. 通过图形界面进行文件解析和智能分类，无需额外安装 Python 环境或依赖
 
-发行版下载地址(下滑下载FileFlow.zip)：[点击这里下载最新版本](https://gitee.com/abyssferry/file-flow/releases)
+发行版下载地址(点击链接下滑下载FileFlow.zip)：[点击这里下载最新版本](https://gitee.com/abyssferry/file-flow/releases)
 
 ---
 
@@ -144,6 +144,6 @@ python run_app.py
 - **[@Wangch07](https://gitee.com/wangch07)**  
   🖥️ 后端非 AI 逻辑设计
 
-- **Apollo**  
+- **[@apollo123456](https://gitee.com/apollo123456)**
   🗄️ 数据库设计
 
