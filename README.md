@@ -144,6 +144,6 @@ python run_app.py
 - **[@Wangch07](https://gitee.com/wangch07)**  
   🖥️ 后端非 AI 逻辑设计
 
-- **[@apollo123456](https://gitee.com/apollo123456)**
+- **[@apollo123456](https://gitee.com/apollo123456)**  
   🗄️ 数据库设计
 
