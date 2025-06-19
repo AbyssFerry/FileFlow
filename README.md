@@ -77,7 +77,7 @@ FileFlow                    # 项目根目录
 3. 按照界面输入配置 DeepSeek API Key
 4. 通过图形界面进行文件解析和智能分类，无需额外安装 Python 环境或依赖
 
-发行版下载地址(点击链接下滑下载FileFlow.zip)：[点击这里下载最新版本](https://gitee.com/abyssferry/file-flow/releases)
+发行版下载地址(点击链接下滑下载FileFlow.zip)：[点击这里下载最新版本](https://github.com/AbyssFerry/FileFlow/releases)
 
 ---
 
@@ -86,7 +86,7 @@ FileFlow                    # 项目根目录
 ### 1. 克隆仓库
 
 ```bash
-git clone git@gitee.com:abyssferry/file-flow.git
+git clone git@github.com:AbyssFerry/FileFlow.git
 cd FileFlow
 ```
 
@@ -126,13 +126,14 @@ python run_app.py
 
 如有问题或建议，欢迎通过 Gitee Issue 方式联系：
 
-- Gitee Issue: [点击提交问题](https://gitee.com/abyssferry/file-flow/issues)
+- Gitee Issue: [点击提交问题](https://github.com/AbyssFerry/FileFlow/issues)
 
 ---
 
 ## 🎉 贡献者
 
-- **[@AbyssFerry](https://gitee.com/abyssferry)**  
+- **[@AbyssFerry](https://gitee.com/abyssferry)**
+- **[![GitHub](https://img.shields.io/badge/GitHub-@AbyssFerry-blue)](https://github.com/AbyssFerry)**
   🧭 项目管理｜🏗️ 架构设计｜🧪 测试｜🔧 维护｜🚀 部署
 
 - **[@Yemorenkuming](https://gitee.com/yemorenkuming)**  
