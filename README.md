@@ -132,8 +132,8 @@ python run_app.py
 
 ## 🎉 贡献者
 
-- **[@AbyssFerry](https://gitee.com/abyssferry)**
-- **[![GitHub](https://img.shields.io/badge/GitHub-@AbyssFerry-blue)](https://github.com/AbyssFerry)**
+- **[@AbyssFerry](https://gitee.com/abyssferry)**  
+- **[![GitHub](https://img.shields.io/badge/GitHub-@AbyssFerry-blue)](https://github.com/AbyssFerry)**  
   🧭 项目管理｜🏗️ 架构设计｜🧪 测试｜🔧 维护｜🚀 部署
 
 - **[@Yemorenkuming](https://gitee.com/yemorenkuming)**  
